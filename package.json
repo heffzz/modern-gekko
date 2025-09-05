@@ -1,0 +1,62 @@
+{
+  "name": "modern-gekko",
+  "version": "1.0.0",
+  "description": "Modern fork of askmike/gekko - Trading bot and backtester with Vue 3 UI",
+  "main": "src/server.js",
+  "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:web\"",
+    "dev:server": "nodemon src/server.js",
+    "dev:web": "cd web && npm run dev",
+    "build": "cd web && npm run build",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "lint": "eslint src/ test/ --ext .js",
+    "lint:fix": "eslint src/ test/ --ext .js --fix",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up",
+    "postinstall": "cd web && npm install"
+  },
+  "keywords": [
+    "trading",
+    "bot",
+    "backtesting",
+    "cryptocurrency",
+    "gekko",
+    "vue",
+    "nodejs"
+  ],
+  "author": "Modern Gekko Team",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "winston": "^3.11.0",
+    "csv-parser": "^3.0.0",
+    "yargs": "^17.7.2",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "nodemon": "^3.0.1",
+    "eslint": "^8.52.0",
+    "prettier": "^3.0.3",
+    "concurrently": "^8.2.2",
+    "supertest": "^6.3.3"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "transform": {},
+    "extensionsToTreatAsEsm": [".js"],
+    "globals": {
+      "jest": {
+        "useESM": true
+      }
+    }
+  }
+}

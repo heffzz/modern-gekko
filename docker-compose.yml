@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  gekko:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - LIVE=false
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./WORKLOG:/app/WORKLOG
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - gekko-network
+
+  # Optional: Add Redis for caching (future enhancement)
+  # redis:
+  #   image: redis:7-alpine
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis_data:/data
+  #   restart: unless-stopped
+  #   networks:
+  #     - gekko-network
+
+networks:
+  gekko-network:
+    driver: bridge
+
+volumes:
+  # redis_data:
+  gekko_data:
+    driver: local
