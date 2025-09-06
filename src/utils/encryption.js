@@ -1,4 +1,4 @@
-const crypto = require('crypto');
+import crypto from 'crypto';
 
 /**
  * Encryption utilities for secure data handling
@@ -10,14 +10,14 @@ class EncryptionUtils {
     this.ivLength = 16; // 128 bits
     this.tagLength = 16; // 128 bits
   }
-  
+
   /**
    * Generate a random encryption key
    */
   generateKey() {
     return crypto.randomBytes(this.keyLength).toString('hex');
   }
-  
+
   /**
    * Derive key from password using PBKDF2
    */
@@ -25,15 +25,15 @@ class EncryptionUtils {
     if (!salt) {
       salt = crypto.randomBytes(16);
     }
-    
+
     const key = crypto.pbkdf2Sync(password, salt, 100000, this.keyLength, 'sha256');
-    
+
     return {
       key: key.toString('hex'),
       salt: salt.toString('hex')
     };
   }
-  
+
   /**
    * Encrypt data
    */
@@ -41,29 +41,29 @@ class EncryptionUtils {
     try {
       const keyBuffer = Buffer.from(key, 'hex');
       const iv = crypto.randomBytes(this.ivLength);
-      
+
       const cipher = crypto.createCipher(this.algorithm, keyBuffer);
       cipher.setAAD(Buffer.from('gekko-trading-bot'));
-      
+
       let encrypted = cipher.update(data, 'utf8', 'hex');
       encrypted += cipher.final('hex');
-      
+
       const tag = cipher.getAuthTag();
-      
+
       // Combine iv, tag, and encrypted data
       const result = {
         iv: iv.toString('hex'),
         tag: tag.toString('hex'),
         data: encrypted
       };
-      
+
       return JSON.stringify(result);
-      
+
     } catch (error) {
       throw new Error(`Encryption failed: ${error.message}`);
     }
   }
-  
+
   /**
    * Decrypt data
    */
@@ -71,39 +71,39 @@ class EncryptionUtils {
     try {
       const keyBuffer = Buffer.from(key, 'hex');
       const parsed = JSON.parse(encryptedData);
-      
+
       const iv = Buffer.from(parsed.iv, 'hex');
       const tag = Buffer.from(parsed.tag, 'hex');
       const encrypted = parsed.data;
-      
+
       const decipher = crypto.createDecipher(this.algorithm, keyBuffer);
       decipher.setAAD(Buffer.from('gekko-trading-bot'));
       decipher.setAuthTag(tag);
-      
+
       let decrypted = decipher.update(encrypted, 'hex', 'utf8');
       decrypted += decipher.final('utf8');
-      
+
       return decrypted;
-      
+
     } catch (error) {
       throw new Error(`Decryption failed: ${error.message}`);
     }
   }
-  
+
   /**
    * Hash data using SHA-256
    */
   hash(data) {
     return crypto.createHash('sha256').update(data).digest('hex');
   }
-  
+
   /**
    * Generate HMAC signature
    */
   sign(data, secret) {
     return crypto.createHmac('sha256', secret).update(data).digest('hex');
   }
-  
+
   /**
    * Verify HMAC signature
    */
@@ -114,14 +114,14 @@ class EncryptionUtils {
       Buffer.from(expectedSignature, 'hex')
     );
   }
-  
+
   /**
    * Generate secure random string
    */
   generateRandomString(length = 32) {
     return crypto.randomBytes(length).toString('hex');
   }
-  
+
   /**
    * Generate UUID v4
    */
@@ -202,7 +202,7 @@ function generateUUID() {
   return encryptionUtils.generateUUID();
 }
 
-module.exports = {
+export {
   EncryptionUtils,
   encrypt,
   decrypt,

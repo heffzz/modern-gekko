@@ -278,6 +278,4 @@ describe('API Tests', () => {
   });
 });
 
-module.exports = {
-  createTestApp
-};
+export { createTestApp };

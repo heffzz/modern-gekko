@@ -9,11 +9,11 @@ class ParabolicSAR {
   constructor(step = 0.02, max = 0.2) {
     this.step = step; // Initial acceleration factor
     this.max = max;   // Maximum acceleration factor
-    
+
     this.candles = [];
     this.sarValues = [];
     this.trends = []; // 1 for uptrend, -1 for downtrend
-    
+
     // Current state
     this.currentSAR = null;
     this.currentTrend = null;
@@ -34,7 +34,7 @@ class ParabolicSAR {
       // Initialize with first two candles
       const prev = this.candles[0];
       const curr = this.candles[1];
-      
+
       if (curr.close > prev.close) {
         // Start with uptrend
         this.currentTrend = 1;
@@ -46,13 +46,13 @@ class ParabolicSAR {
         this.currentSAR = prev.high;
         this.currentEP = curr.low;
       }
-      
+
       this.currentAF = this.step;
       this.isInitialized = true;
-      
+
       this.sarValues.push(this.currentSAR);
       this.trends.push(this.currentTrend);
-      
+
       return {
         sar: parseFloat(this.currentSAR.toFixed(4)),
         trend: this.currentTrend,
@@ -87,7 +87,7 @@ class ParabolicSAR {
         const prevLow = this.candles[this.candles.length - 2].low;
         const prevPrevLow = this.candles.length > 2 ? this.candles[this.candles.length - 3].low : prevLow;
         newSAR = Math.min(newSAR, prevLow, prevPrevLow);
-        
+
         // Update EP and AF
         if (high > prevEP) {
           newEP = high;
@@ -109,7 +109,7 @@ class ParabolicSAR {
         const prevHigh = this.candles[this.candles.length - 2].high;
         const prevPrevHigh = this.candles.length > 2 ? this.candles[this.candles.length - 3].high : prevHigh;
         newSAR = Math.max(newSAR, prevHigh, prevPrevHigh);
-        
+
         // Update EP and AF
         if (low < prevEP) {
           newEP = low;
@@ -158,17 +158,17 @@ class ParabolicSAR {
   // Get trend direction
   getTrendDirection() {
     if (!this.isInitialized) return null;
-    
+
     return this.currentTrend === 1 ? 'uptrend' : 'downtrend';
   }
 
   // Check for trend reversal
   getTrendReversal() {
     if (this.trends.length < 2) return null;
-    
+
     const current = this.trends[this.trends.length - 1];
     const previous = this.trends[this.trends.length - 2];
-    
+
     if (current !== previous) {
       return {
         type: current === 1 ? 'bullish_reversal' : 'bearish_reversal',
@@ -177,7 +177,7 @@ class ParabolicSAR {
         sarLevel: this.currentSAR
       };
     }
-    
+
     return null;
   }
 
@@ -188,7 +188,7 @@ class ParabolicSAR {
 
     const { sar, trend } = result;
     const reversal = this.getTrendReversal();
-    
+
     let signal = 'hold';
     let strength = 'medium';
     let reason = '';
@@ -258,7 +258,7 @@ class ParabolicSAR {
 
     const recentTrends = this.trends.slice(-10);
     const currentTrend = this.currentTrend;
-    
+
     // Count consecutive periods in same trend
     let consecutiveCount = 0;
     for (let i = recentTrends.length - 1; i >= 0; i--) {
@@ -293,7 +293,7 @@ class ParabolicSAR {
 
     const riskAmount = accountBalance * (riskPercent / 100);
     const positionSize = riskAmount / stopDistance.absolute;
-    
+
     return {
       positionSize: parseFloat(positionSize.toFixed(6)),
       riskAmount: parseFloat(riskAmount.toFixed(2)),
@@ -309,12 +309,12 @@ class ParabolicSAR {
     if (!result || !currentPrice || !entryPrice) return null;
 
     const { sar, trend } = result;
-    const currentProfit = direction === 'long' ? 
+    const currentProfit = direction === 'long' ?
       currentPrice - entryPrice : entryPrice - currentPrice;
     const profitPercent = (currentProfit / entryPrice) * 100;
 
     let action = 'hold';
-    let newStopLoss = sar;
+    const newStopLoss = sar;
     let reason = '';
 
     if (direction === 'long') {

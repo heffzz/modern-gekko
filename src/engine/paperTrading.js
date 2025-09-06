@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 class PaperTradingEngine extends EventEmitter {
   constructor(config = {}) {
     super();
-    
+
     this.config = {
       initialBalance: 10000,
       commission: 0.001,
@@ -14,16 +14,16 @@ class PaperTradingEngine extends EventEmitter {
       maxPositions: 10,
       ...config
     };
-    
+
     this.initialBalance = this.config.initialBalance;
-    
+
     this.marketData = new Map();
     this.marketPrices = {};
     this.isRunning = false;
     this.startTime = null;
     this.reset();
   }
-  
+
   reset() {
     this.balance = this.initialBalance;
     this.positions = new Map();
@@ -57,17 +57,17 @@ class PaperTradingEngine extends EventEmitter {
       maxDrawdown: 0,
       returns: []
     };
-    
+
     if (this.marketData) {
       this.marketData.clear();
     }
     this.emit('reset');
   }
-  
+
   placeOrder(type, symbol, amount, price = null, options = {}) {
     const orderId = uuidv4();
     const timestamp = Date.now();
-    
+
     const order = {
       id: orderId,
       type,
@@ -78,43 +78,43 @@ class PaperTradingEngine extends EventEmitter {
       status: 'pending',
       ...options
     };
-    
+
     this.orders.set(orderId, order);
-    
+
     // Execute immediately for market orders
     if (type === 'market') {
       this.executeOrder(orderId, price || this.getCurrentPrice(symbol));
     }
-    
+
     this.emit('orderPlaced', order);
     return orderId;
   }
-  
+
   executeOrder(orderId, marketPrice) {
     const order = this.orders.get(orderId);
     if (!order || order.status !== 'pending') {
       return false;
     }
-    
+
     const { type, symbol, amount, price: orderPrice } = order;
-    
+
     // Check if limit order should be executed
     if (type === 'limit') {
-      const shouldExecute = (amount > 0 && marketPrice <= orderPrice) || 
+      const shouldExecute = (amount > 0 && marketPrice <= orderPrice) ||
                            (amount < 0 && marketPrice >= orderPrice);
       if (!shouldExecute) {
         return false;
       }
     }
-    
+
     // Calculate execution price with slippage
     const slippage = this.calculateSlippage(amount, marketPrice);
     const executionPrice = marketPrice * (1 + slippage);
-    
+
     // Calculate commission
     const commission = Math.abs(amount * executionPrice * this.config.commission);
     const totalCost = amount * executionPrice + commission;
-    
+
     // Check if we have enough balance
     if (amount > 0 && totalCost > this.balance) {
       order.status = 'rejected';
@@ -122,22 +122,22 @@ class PaperTradingEngine extends EventEmitter {
       this.emit('orderRejected', order);
       return false;
     }
-    
+
     // Execute the trade
     this.balance -= totalCost;
-    
+
     // Update position
     const currentPosition = this.positions.get(symbol) || { amount: 0, avgPrice: 0 };
     const newAmount = currentPosition.amount + amount;
-    
+
     if (newAmount === 0) {
       this.positions.delete(symbol);
     } else {
-      const newAvgPrice = newAmount !== 0 ? 
+      const newAvgPrice = newAmount !== 0 ?
         ((currentPosition.amount * currentPosition.avgPrice) + (amount * executionPrice)) / newAmount : 0;
       this.positions.set(symbol, { amount: newAmount, avgPrice: newAvgPrice });
     }
-    
+
     // Record trade
     const trade = {
       id: uuidv4(),
@@ -149,102 +149,102 @@ class PaperTradingEngine extends EventEmitter {
       timestamp: Date.now(),
       pnl: this.calculateTradePnL(symbol, amount, executionPrice, currentPosition)
     };
-    
+
     this.trades.push(trade);
-    
+
     // Update order status
     order.status = 'filled';
     order.executionPrice = executionPrice;
     order.commission = commission;
-    
+
     this.updateMetrics();
     this.emit('orderFilled', order, trade);
-    
+
     return true;
   }
-  
+
   calculateSlippage(amount, price) {
     const baseSlippage = this.config.slippage;
     const volumeImpact = Math.abs(amount) / 10000;
     const slippage = baseSlippage + volumeImpact;
-    
+
     return Math.min(slippage, this.config.maxSlippage) * Math.sign(amount);
   }
-  
+
   calculateTradePnL(symbol, amount, executionPrice, previousPosition) {
     if (!previousPosition || previousPosition.amount === 0) {
       return 0;
     }
-    
+
     const closingAmount = Math.min(Math.abs(amount), Math.abs(previousPosition.amount));
     const pnl = closingAmount * (executionPrice - previousPosition.avgPrice) * Math.sign(previousPosition.amount);
-    
+
     return amount < 0 ? pnl : -pnl;
   }
-  
+
   getCurrentPrice(symbol) {
     return 100 + Math.random() * 10;
   }
-  
+
   start() {
     this.isRunning = true;
     this.startTime = new Date();
     this.emit('started', { timestamp: this.startTime });
     console.log('Paper Trading Engine started');
   }
-  
+
   stop() {
     this.isRunning = false;
-    this.emit('stopped', { 
+    this.emit('stopped', {
       timestamp: new Date(),
       performance: this.getPerformance()
     });
     console.log('Paper Trading Engine stopped');
   }
-  
+
   updateMarketData(symbol, candle) {
     if (!this.isRunning) return;
-    
+
     this.marketData.set(symbol, {
       ...candle,
       timestamp: new Date(),
       symbol
     });
-    
+
     // Check for order executions
     this.processOrders(symbol, candle);
-    
+
     // Update portfolio equity
     this.updateEquity();
-    
+
     this.emit('marketData', { symbol, candle });
   }
-  
+
   placeOrder(order) {
     if (!this.isRunning) {
       throw new Error('Paper trading engine is not running');
     }
-    
+
     const orderId = uuidv4();
     const timestamp = new Date();
-    
+
     const fullOrder = {
       id: orderId,
       timestamp,
       status: 'pending',
       ...order
     };
-    
+
     // Validate order
     const validation = this.validateOrder(fullOrder);
     if (!validation.valid) {
       throw new Error(`Invalid order: ${validation.reason}`);
     }
-    
+
     this.orders.set(orderId, fullOrder);
-    
+
     this.emit('orderPlaced', fullOrder);
-    
+
     // Try to execute immediately if market order
     if (order.type === 'market') {
       const marketData = this.marketData.get(order.symbol);
@@ -252,52 +252,52 @@ class PaperTradingEngine extends EventEmitter {
         this.executeOrder(orderId, marketData.close);
       }
     }
-    
+
     return orderId;
   }
-  
+
   cancelOrder(orderId) {
     const order = this.orders.get(orderId);
     if (!order) {
       throw new Error('Order not found');
     }
-    
+
     if (order.status !== 'pending') {
       throw new Error('Cannot cancel non-pending order');
     }
-    
+
     order.status = 'cancelled';
     order.cancelledAt = new Date();
-    
+
     this.emit('orderCancelled', order);
-    
+
     return true;
   }
-  
+
   validateOrder(order) {
     // Check required fields
     if (!order.symbol || !order.side || !order.quantity || !order.type) {
       return { valid: false, reason: 'Missing required fields' };
     }
-    
+
     // Check quantity
     if (order.quantity <= 0) {
       return { valid: false, reason: 'Quantity must be positive' };
     }
-    
+
     // Check balance for buy orders
     if (order.side === 'buy') {
       const marketData = this.marketData.get(order.symbol);
       if (!marketData) {
         return { valid: false, reason: 'No market data available' };
       }
-      
+
       const estimatedCost = order.quantity * marketData.close * (1 + this.config.commission + this.config.slippage);
       if (estimatedCost > this.portfolio.balance) {
         return { valid: false, reason: 'Insufficient balance' };
       }
     }
-    
+
     // Check position for sell orders
     if (order.side === 'sell') {
       const position = this.portfolio.positions.get(order.symbol);
@@ -305,79 +305,79 @@ class PaperTradingEngine extends EventEmitter {
         return { valid: false, reason: 'Insufficient position' };
       }
     }
-    
+
     // Check max positions
     if (order.side === 'buy' && this.portfolio.positions.size >= this.config.maxPositions) {
       return { valid: false, reason: 'Maximum positions reached' };
     }
-    
+
     return { valid: true };
   }
-  
+
   processOrders(symbol, candle) {
     for (const [orderId, order] of this.portfolio.orders) {
       if (order.symbol !== symbol || order.status !== 'pending') continue;
-      
+
       let shouldExecute = false;
       let executionPrice = null;
-      
+
       switch (order.type) {
-        case 'market':
+      case 'market':
+        shouldExecute = true;
+        executionPrice = candle.close;
+        break;
+
+      case 'limit':
+        if (order.side === 'buy' && candle.low <= order.price) {
           shouldExecute = true;
-          executionPrice = candle.close;
-          break;
-          
-        case 'limit':
-          if (order.side === 'buy' && candle.low <= order.price) {
+          executionPrice = Math.min(order.price, candle.open);
+        } else if (order.side === 'sell' && candle.high >= order.price) {
+          shouldExecute = true;
+          executionPrice = Math.max(order.price, candle.open);
+        }
+        break;
+
+      case 'stop':
+        if (order.side === 'buy' && candle.high >= order.stopPrice) {
+          shouldExecute = true;
+          executionPrice = Math.max(order.stopPrice, candle.open);
+        } else if (order.side === 'sell' && candle.low <= order.stopPrice) {
+          shouldExecute = true;
+          executionPrice = Math.min(order.stopPrice, candle.open);
+        }
+        break;
+
+      case 'stop_limit':
+        if (order.side === 'buy' && candle.high >= order.stopPrice) {
+          if (candle.low <= order.price) {
             shouldExecute = true;
-            executionPrice = Math.min(order.price, candle.open);
-          } else if (order.side === 'sell' && candle.high >= order.price) {
-            shouldExecute = true;
-            executionPrice = Math.max(order.price, candle.open);
+            executionPrice = Math.min(order.price, Math.max(order.stopPrice, candle.open));
+          } else {
+            // Convert to limit order
+            order.type = 'limit';
           }
-          break;
-          
-        case 'stop':
-          if (order.side === 'buy' && candle.high >= order.stopPrice) {
+        } else if (order.side === 'sell' && candle.low <= order.stopPrice) {
+          if (candle.high >= order.price) {
             shouldExecute = true;
-            executionPrice = Math.max(order.stopPrice, candle.open);
-          } else if (order.side === 'sell' && candle.low <= order.stopPrice) {
-            shouldExecute = true;
-            executionPrice = Math.min(order.stopPrice, candle.open);
+            executionPrice = Math.max(order.price, Math.min(order.stopPrice, candle.open));
+          } else {
+            // Convert to limit order
+            order.type = 'limit';
           }
-          break;
-          
-        case 'stop_limit':
-          if (order.side === 'buy' && candle.high >= order.stopPrice) {
-            if (candle.low <= order.price) {
-              shouldExecute = true;
-              executionPrice = Math.min(order.price, Math.max(order.stopPrice, candle.open));
-            } else {
-              // Convert to limit order
-              order.type = 'limit';
-            }
-          } else if (order.side === 'sell' && candle.low <= order.stopPrice) {
-            if (candle.high >= order.price) {
-              shouldExecute = true;
-              executionPrice = Math.max(order.price, Math.min(order.stopPrice, candle.open));
-            } else {
-              // Convert to limit order
-              order.type = 'limit';
-            }
-          }
-          break;
+        }
+        break;
       }
-      
+
       if (shouldExecute) {
         this.executeOrder(orderId, executionPrice);
       }
     }
   }
-  
+
   getOrderStatus(orderId) {
     const order = this.orders.get(orderId);
     if (!order) return null;
-    
+
     return {
       orderId: order.id,
       status: order.status,
@@ -392,25 +392,25 @@ class PaperTradingEngine extends EventEmitter {
   executeOrder(orderId) {
     const order = this.orders.get(orderId);
     if (!order || order.status !== 'pending') return;
-    
+
     // Apply slippage
     const slippageMultiplier = order.side === 'buy' ? (1 + this.config.slippage) : (1 - this.config.slippage);
     const executionPrice = price * slippageMultiplier;
-    
+
     // Calculate commission
     const commission = order.quantity * executionPrice * this.config.commission;
     const totalCost = order.quantity * executionPrice + commission;
-    
+
     // Update order
     order.status = 'filled';
     order.executedAt = new Date();
     order.executionPrice = executionPrice;
     order.commission = commission;
-    
+
     // Update portfolio
     if (order.side === 'buy') {
       this.portfolio.balance -= totalCost;
-      
+
       // Update or create position
       const existingPosition = this.portfolio.positions.get(order.symbol);
       if (existingPosition) {
@@ -430,19 +430,19 @@ class PaperTradingEngine extends EventEmitter {
       }
     } else {
       this.portfolio.balance += (order.quantity * executionPrice) - commission;
-      
+
       // Update position
       const position = this.portfolio.positions.get(order.symbol);
       if (position) {
         position.quantity -= order.quantity;
         position.lastUpdate = new Date();
-        
+
         if (position.quantity <= 0) {
           this.portfolio.positions.delete(order.symbol);
         }
       }
     }
-    
+
     // Record trade
     const trade = {
       id: uuidv4(),
@@ -455,56 +455,56 @@ class PaperTradingEngine extends EventEmitter {
       timestamp: new Date(),
       pnl: 0 // Will be calculated when position is closed
     };
-    
+
     this.portfolio.trades.push(trade);
-    
+
     // Update performance metrics
     this.updatePerformanceMetrics(trade);
-    
+
     this.emit('orderFilled', { order, trade });
-    
+
     return trade;
   }
-  
+
   updateEquity() {
     let totalValue = this.portfolio.cash;
-    
+
     for (const [symbol, position] of Object.entries(this.portfolio.positions)) {
       const marketData = this.marketData.get(symbol);
       if (marketData) {
         totalValue += position.quantity * marketData.close;
       }
     }
-    
+
     this.portfolio.equity = totalValue;
-    
+
     // Update peak equity and drawdown
     if (totalValue > this.portfolio.performance.peakEquity) {
       this.portfolio.performance.peakEquity = totalValue;
     }
-    
+
     const drawdown = this.portfolio.performance.peakEquity - totalValue;
     const drawdownPercent = (drawdown / this.portfolio.performance.peakEquity) * 100;
-    
+
     if (drawdown > this.portfolio.performance.maxDrawdown) {
       this.portfolio.performance.maxDrawdown = drawdown;
     }
-    
+
     if (drawdownPercent > this.portfolio.performance.maxDrawdownPercent) {
       this.portfolio.performance.maxDrawdownPercent = drawdownPercent;
     }
   }
-  
+
   updatePerformanceMetrics(trade) {
     this.portfolio.performance.totalTrades++;
-    
+
     // Calculate PnL for completed trades
     if (trade.side === 'sell') {
       const position = this.portfolio.positions.get(trade.symbol);
       if (position) {
         const pnl = (trade.price - position.avgPrice) * trade.quantity - trade.commission;
         trade.pnl = pnl;
-        
+
         if (pnl > 0) {
           this.portfolio.performance.winningTrades++;
           this.portfolio.performance.totalProfit += pnl;
@@ -512,7 +512,7 @@ class PaperTradingEngine extends EventEmitter {
           this.portfolio.performance.losingTrades++;
           this.portfolio.performance.totalLoss += Math.abs(pnl);
         }
-        
+
         // Calculate profit factor
         if (this.portfolio.performance.totalLoss > 0) {
           this.portfolio.performance.profitFactor = this.portfolio.performance.totalProfit / this.portfolio.performance.totalLoss;
@@ -520,7 +520,7 @@ class PaperTradingEngine extends EventEmitter {
       }
     }
   }
-  
+
   getPortfolio() {
     return {
       ...this.portfolio,
@@ -529,10 +529,10 @@ class PaperTradingEngine extends EventEmitter {
       unrealizedPnL: this.calculateUnrealizedPnL()
     };
   }
-  
+
   calculateUnrealizedPnL() {
     let totalUnrealizedPnL = 0;
-    
+
     for (const [symbol, position] of this.portfolio.positions) {
       const marketData = this.marketData.get(symbol);
       const marketPrice = this.marketPrices[symbol] || (marketData ? marketData.close : null);
@@ -541,48 +541,48 @@ class PaperTradingEngine extends EventEmitter {
         totalUnrealizedPnL += unrealizedPnL;
       }
     }
-    
+
     return totalUnrealizedPnL;
   }
-  
+
   getPerformance() {
     const performance = { ...this.portfolio.performance };
-    
+
     // Calculate additional metrics
     if (performance.totalTrades > 0) {
       performance.winRate = (performance.winningTrades / performance.totalTrades) * 100;
       performance.avgWin = performance.winningTrades > 0 ? performance.totalProfit / performance.winningTrades : 0;
       performance.avgLoss = performance.losingTrades > 0 ? performance.totalLoss / performance.losingTrades : 0;
     }
-    
+
     // Calculate ROI
     const initialBalance = this.portfolio.balance + this.portfolio.performance.totalProfit - this.portfolio.performance.totalLoss;
     performance.roi = ((this.portfolio.equity - initialBalance) / initialBalance) * 100;
-    
+
     return performance;
   }
-  
+
   calculatePositionSize(symbol, riskAmount, stopLossPrice) {
     const marketData = this.marketData.get(symbol);
     if (!marketData) return 0;
-    
+
     const currentPrice = marketData.close;
     const riskPerShare = Math.abs(currentPrice - stopLossPrice);
-    
+
     if (riskPerShare === 0) return 0;
-    
+
     return riskAmount / riskPerShare;
   }
-  
+
   setStopLoss(symbol, stopLossPercentage) {
     const position = this.portfolio.positions.get(symbol);
     if (!position) {
       throw new Error('No position found for symbol');
     }
-    
+
     // Calculate stop price based on percentage below entry price
     const stopPrice = position.averagePrice * (1 - stopLossPercentage);
-    
+
     return this.placeOrder({
       symbol,
       side: 'sell',
@@ -591,16 +591,16 @@ class PaperTradingEngine extends EventEmitter {
       stopPrice
     });
   }
-  
+
   setTakeProfit(symbol, takeProfitPercentage) {
     const position = this.portfolio.positions.get(symbol);
     if (!position) {
       throw new Error('No position found for symbol');
     }
-    
+
     // Calculate target price based on percentage above entry price
     const targetPrice = position.averagePrice * (1 + takeProfitPercentage);
-    
+
     return this.placeOrder({
       symbol,
       side: 'sell',
@@ -609,22 +609,22 @@ class PaperTradingEngine extends EventEmitter {
       price: targetPrice
     });
   }
-  
+
 
 
   updateMetrics() {
     const trades = this.trades.filter(t => t.pnl !== 0);
     const winningTrades = trades.filter(t => t.pnl > 0);
     const losingTrades = trades.filter(t => t.pnl < 0);
-    
+
     this.metrics = {
       totalTrades: trades.length,
       winningTrades: winningTrades.length,
       losingTrades: losingTrades.length,
       winRate: trades.length > 0 ? winningTrades.length / trades.length : 0,
-      avgWin: winningTrades.length > 0 ? 
+      avgWin: winningTrades.length > 0 ?
         winningTrades.reduce((sum, t) => sum + t.pnl, 0) / winningTrades.length : 0,
-      avgLoss: losingTrades.length > 0 ? 
+      avgLoss: losingTrades.length > 0 ?
         Math.abs(losingTrades.reduce((sum, t) => sum + t.pnl, 0)) / losingTrades.length : 0,
       profitFactor: this.calculateProfitFactor(winningTrades, losingTrades),
       sharpeRatio: this.calculateSharpeRatio(),
@@ -632,30 +632,30 @@ class PaperTradingEngine extends EventEmitter {
       returns: this.calculateReturns()
     };
   }
-  
+
   calculateProfitFactor(winningTrades, losingTrades) {
     const totalWins = winningTrades.reduce((sum, t) => sum + t.pnl, 0);
     const totalLosses = Math.abs(losingTrades.reduce((sum, t) => sum + t.pnl, 0));
-    
+
     return totalLosses > 0 ? totalWins / totalLosses : 0;
   }
-  
+
   calculateSharpeRatio() {
     const returns = this.calculateReturns();
     if (returns.length < 2) return 0;
-    
+
     const avgReturn = returns.reduce((sum, r) => sum + r, 0) / returns.length;
     const variance = returns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / returns.length;
     const stdDev = Math.sqrt(variance);
-    
+
     return stdDev > 0 ? avgReturn / stdDev : 0;
   }
-  
+
   calculateMaxDrawdown() {
     const equity = this.calculateEquityCurve();
     let maxDrawdown = 0;
     let peak = equity[0] || this.initialBalance;
-    
+
     for (const value of equity) {
       if (value > peak) {
         peak = value;
@@ -663,57 +663,57 @@ class PaperTradingEngine extends EventEmitter {
       const drawdown = (peak - value) / peak;
       maxDrawdown = Math.max(maxDrawdown, drawdown);
     }
-    
+
     return maxDrawdown;
   }
-  
+
   calculateReturns() {
     const equity = this.calculateEquityCurve();
     const returns = [];
-    
+
     for (let i = 1; i < equity.length; i++) {
-      const ret = (equity[i] - equity[i-1]) / equity[i-1];
+      const ret = (equity[i] - equity[i - 1]) / equity[i - 1];
       returns.push(ret);
     }
-    
+
     return returns;
   }
-  
+
   calculateEquityCurve() {
     const curve = [this.initialBalance];
     let balance = this.initialBalance;
-    
+
     for (const trade of this.trades) {
       balance += trade.pnl - trade.commission;
       curve.push(balance);
     }
-    
+
     return curve;
   }
-  
+
   getPosition(symbol) {
     return this.positions.get(symbol) || { amount: 0, avgPrice: 0 };
   }
-  
+
   getOrder(orderId) {
     return this.orders.get(orderId);
   }
-  
+
   getMetrics() {
     return { ...this.metrics };
   }
-  
+
   getPortfolio() {
     return { ...this.portfolio };
   }
-  
+
   getTrades() {
     return this.trades;
   }
 
   calculateUnrealizedPnL(symbol = null) {
     let totalUnrealizedPnL = 0;
-    
+
     if (symbol) {
       const position = this.portfolio.positions.get(symbol);
       if (position) {
@@ -722,31 +722,31 @@ class PaperTradingEngine extends EventEmitter {
       }
       return 0;
     }
-    
+
     for (const [sym, position] of this.portfolio.positions) {
       const marketPrice = this.marketPrices[sym] || this.getCurrentPrice(sym);
       totalUnrealizedPnL += (marketPrice - position.averagePrice) * position.amount;
     }
-    
+
     return totalUnrealizedPnL;
   }
 
   updateMarketPrice(symbol, price) {
     this.marketPrices[symbol] = price;
-    
+
     // Process pending orders that might be triggered by price change
     this.processPendingOrders(symbol, price);
-    
+
     this.updatePortfolioValue();
   }
 
   processPendingOrders(symbol, currentPrice) {
     const pendingOrders = Array.from(this.orders.values())
       .filter(order => order.status === 'pending' && order.symbol === symbol);
-    
+
     for (const order of pendingOrders) {
       let shouldExecute = false;
-      
+
       if (order.type === 'stop') {
         if (order.side === 'sell' && currentPrice <= order.stopPrice) {
           shouldExecute = true;
@@ -760,23 +760,23 @@ class PaperTradingEngine extends EventEmitter {
           shouldExecute = true;
         }
       }
-      
+
       if (shouldExecute) {
-         // Convert stop order to market order
-         const marketOrder = {
-           ...order,
-           type: 'market',
-           price: currentPrice
-         };
-         const result = this.executeOrder(marketOrder);
-         
-         // Update original order status
-         if (result && result.status !== 'rejected') {
-           order.status = 'filled';
-           order.executedPrice = currentPrice;
-           order.executedAt = new Date();
-         }
-       }
+        // Convert stop order to market order
+        const marketOrder = {
+          ...order,
+          type: 'market',
+          price: currentPrice
+        };
+        const result = this.executeOrder(marketOrder);
+
+        // Update original order status
+        if (result && result.status !== 'rejected') {
+          order.status = 'filled';
+          order.executedPrice = currentPrice;
+          order.executedAt = new Date();
+        }
+      }
     }
   }
 
@@ -791,26 +791,26 @@ class PaperTradingEngine extends EventEmitter {
 
   updatePortfolioValue() {
     let totalValue = this.portfolio.cash;
-    
+
     for (const [symbol, position] of this.portfolio.positions) {
       const marketPrice = this.marketPrices[symbol] || this.getCurrentPrice(symbol);
       totalValue += position.amount * marketPrice;
-      
+
       // Update unrealized PnL
       position.unrealizedPnL = (marketPrice - position.averagePrice) * position.amount;
     }
-    
+
     this.portfolio.totalValue = totalValue;
     this.portfolio.equity = totalValue;
     this.portfolio.unrealizedPnL = this.calculateUnrealizedPnL();
     this.portfolio.totalPnL = totalValue - this.initialBalance;
-    
+
     // Update performance metrics
     if (this.portfolio.performance) {
       this.portfolio.performance.totalReturn = ((totalValue - this.initialBalance) / this.initialBalance) * 100;
       this.portfolio.performance.totalReturnAbs = totalValue - this.initialBalance;
     }
-    
+
     return totalValue;
   }
 
@@ -849,7 +849,7 @@ class PaperTradingEngine extends EventEmitter {
     if (!this.tradeHistory || this.tradeHistory.length === 0) return 0;
     const closedTrades = this.tradeHistory.filter(trade => trade.status === 'closed');
     if (closedTrades.length === 0) return 0;
-    
+
     const winningTrades = closedTrades.filter(trade => trade.pnl > 0);
     return (winningTrades.length / closedTrades.length) * 100;
   }
@@ -873,10 +873,10 @@ class PaperTradingEngine extends EventEmitter {
       if (point.equity > peak) {
         peak = point.equity;
       }
-      
+
       const drawdownAmount = peak - point.equity;
       const drawdownPercent = peak > 0 ? (drawdownAmount / peak) * 100 : 0;
-      
+
       if (drawdownPercent > maxDrawdownPercent) {
         maxDrawdownPercent = drawdownPercent;
         maxDrawdownAmount = drawdownAmount;
@@ -894,7 +894,7 @@ class PaperTradingEngine extends EventEmitter {
     // If first parameter is an object, it's a new order to execute
     if (typeof orderOrId === 'object') {
       const order = orderOrId;
-      
+
       // Validate order
       if (!order.type || !order.side || !order.symbol || !order.amount) {
         return { status: 'rejected', reason: 'Missing required fields' };
@@ -925,7 +925,7 @@ class PaperTradingEngine extends EventEmitter {
         // Update portfolio
         if (order.side === 'buy') {
           this.portfolio.cash -= totalCost;
-          
+
           // Update or create position
           const existingPosition = this.portfolio.positions.get(order.symbol);
           if (existingPosition) {
@@ -942,7 +942,7 @@ class PaperTradingEngine extends EventEmitter {
           }
         } else {
           this.portfolio.cash += (order.amount * executionPrice) - commission;
-          
+
           // Update position
           const position = this.portfolio.positions.get(order.symbol);
           if (position) {
@@ -959,7 +959,7 @@ class PaperTradingEngine extends EventEmitter {
           const marketPrice = order.price || 50000; // Use order price as market price
           currentEquity += position.amount * marketPrice;
         }
-        
+
         this.equityHistory.push({
           timestamp: Date.now(),
           equity: currentEquity
@@ -980,9 +980,9 @@ class PaperTradingEngine extends EventEmitter {
           status: 'pending',
           timestamp: new Date()
         };
-        
+
         this.orders.set(orderId, pendingOrder);
-        
+
         return {
           status: 'pending',
           orderId
@@ -1004,7 +1004,7 @@ class PaperTradingEngine extends EventEmitter {
 
     // Check if limit order should be executed
     if (type === 'limit') {
-      const shouldExecute = (amount > 0 && marketPrice <= orderPrice) || 
+      const shouldExecute = (amount > 0 && marketPrice <= orderPrice) ||
                            (amount < 0 && marketPrice >= orderPrice);
       if (!shouldExecute) {
         return false;
@@ -1037,7 +1037,7 @@ class PaperTradingEngine extends EventEmitter {
     if (newAmount === 0) {
       this.positions.delete(symbol);
     } else {
-      const newAvgPrice = newAmount !== 0 ? 
+      const newAvgPrice = newAmount !== 0 ?
         ((currentPosition.amount * currentPosition.avgPrice) + (amount * executionPrice)) / newAmount : 0;
       this.positions.set(symbol, { amount: newAmount, avgPrice: newAvgPrice });
     }

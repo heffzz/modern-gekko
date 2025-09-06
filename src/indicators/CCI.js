@@ -13,7 +13,7 @@ class CCI {
 
   update(candle) {
     const { high, low, close } = candle;
-    
+
     // Calculate Typical Price (HLC/3)
     const typicalPrice = (high + low + close) / 3;
     this.typicalPrices.push(typicalPrice);
@@ -49,7 +49,7 @@ class CCI {
 
     const currentTypicalPrice = this.typicalPrices[this.typicalPrices.length - 1];
     const sma = this.typicalPrices.reduce((sum, price) => sum + price, 0) / this.period;
-    
+
     const meanDeviation = this.typicalPrices.reduce((sum, price) => {
       return sum + Math.abs(price - sma);
     }, 0) / this.period;

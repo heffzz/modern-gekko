@@ -4,27 +4,27 @@ const nodemailer = require('nodemailer');
 class EmailPlugin extends BasePlugin {
   constructor(config = {}) {
     super(config);
-    
+
     this.hooks = {
       notification: this.onNotification.bind(this),
       alert: this.onAlert.bind(this),
       tradeNotification: this.onTradeNotification.bind(this),
       performanceReport: this.onPerformanceReport.bind(this)
     };
-    
+
     this.transporter = null;
     this.rateLimiter = {
       lastSent: 0,
       minInterval: 5000 // 5 seconds between emails
     };
   }
-  
+
   async initialize() {
     await super.initialize();
-    
+
     // Validate required configuration
     this.validateConfig(['smtp', 'from', 'to']);
-    
+
     // Create transporter
     try {
       this.transporter = nodemailer.createTransporter({
@@ -39,7 +39,7 @@ class EmailPlugin extends BasePlugin {
           rejectUnauthorized: false
         }
       });
-      
+
       // Test connection
       await this.testConnection();
       this.log('Email plugin initialized successfully');
@@ -48,7 +48,7 @@ class EmailPlugin extends BasePlugin {
       throw error;
     }
   }
-  
+
   async testConnection() {
     try {
       await this.transporter.verify();
@@ -58,44 +58,44 @@ class EmailPlugin extends BasePlugin {
       throw new Error(`SMTP connection test failed: ${error.message}`);
     }
   }
-  
+
   async onNotification(data) {
     if (!this.isEnabled()) return;
-    
+
     const subject = `Trading Bot Notification - ${data.type.toUpperCase()}`;
     const html = this.formatNotificationHtml(data);
-    
+
     return await this.sendEmail(subject, html);
   }
-  
+
   async onAlert(data) {
     if (!this.isEnabled()) return;
-    
+
     const subject = `🚨 Trading Bot Alert - ${data.level.toUpperCase()}`;
     const html = this.formatAlertHtml(data);
-    
+
     return await this.sendEmail(subject, html, { priority: 'high' });
   }
-  
+
   async onTradeNotification(data) {
     if (!this.isEnabled()) return;
-    
+
     const trade = data.trade;
     const subject = `💱 Trade Executed - ${trade.symbol} ${trade.side.toUpperCase()}`;
     const html = this.formatTradeHtml(trade);
-    
+
     return await this.sendEmail(subject, html);
   }
-  
+
   async onPerformanceReport(data) {
     if (!this.isEnabled()) return;
-    
-    const subject = `📊 Trading Performance Report`;
+
+    const subject = '📊 Trading Performance Report';
     const html = this.formatPerformanceHtml(data.performance);
-    
+
     return await this.sendEmail(subject, html);
   }
-  
+
   formatNotificationHtml(data) {
     return `
       <html>
@@ -128,7 +128,7 @@ class EmailPlugin extends BasePlugin {
       </html>
     `;
   }
-  
+
   formatAlertHtml(data) {
     const levelColors = {
       low: '#17a2b8',
@@ -136,9 +136,9 @@ class EmailPlugin extends BasePlugin {
       high: '#dc3545',
       critical: '#721c24'
     };
-    
+
     const color = levelColors[data.level] || '#6c757d';
-    
+
     return `
       <html>
         <head>
@@ -175,11 +175,11 @@ class EmailPlugin extends BasePlugin {
       </html>
     `;
   }
-  
+
   formatTradeHtml(trade) {
     const sideColor = trade.side === 'buy' ? '#28a745' : '#dc3545';
     const pnlColor = trade.pnl > 0 ? '#28a745' : trade.pnl < 0 ? '#dc3545' : '#6c757d';
-    
+
     return `
       <html>
         <head>
@@ -237,10 +237,10 @@ class EmailPlugin extends BasePlugin {
       </html>
     `;
   }
-  
+
   formatPerformanceHtml(performance) {
     const profitColor = performance.totalProfit > 0 ? '#28a745' : '#dc3545';
-    
+
     return `
       <html>
         <head>
@@ -309,7 +309,7 @@ class EmailPlugin extends BasePlugin {
       </html>
     `;
   }
-  
+
   async sendEmail(subject, html, options = {}) {
     try {
       // Rate limiting
@@ -317,7 +317,7 @@ class EmailPlugin extends BasePlugin {
       if (now - this.rateLimiter.lastSent < this.rateLimiter.minInterval) {
         await new Promise(resolve => setTimeout(resolve, this.rateLimiter.minInterval));
       }
-      
+
       const mailOptions = {
         from: this.config.from,
         to: Array.isArray(this.config.to) ? this.config.to.join(', ') : this.config.to,
@@ -326,11 +326,11 @@ class EmailPlugin extends BasePlugin {
         priority: options.priority || 'normal',
         ...options
       };
-      
+
       const result = await this.transporter.sendMail(mailOptions);
-      
+
       this.rateLimiter.lastSent = Date.now();
-      
+
       this.log(`Email sent successfully: ${result.messageId}`);
       return { success: true, messageId: result.messageId };
     } catch (error) {
@@ -338,7 +338,7 @@ class EmailPlugin extends BasePlugin {
       return { success: false, error: error.message };
     }
   }
-  
+
   async sendEmailWithAttachment(subject, html, attachments, options = {}) {
     try {
       const mailOptions = {
@@ -349,9 +349,9 @@ class EmailPlugin extends BasePlugin {
         attachments,
         ...options
       };
-      
+
       const result = await this.transporter.sendMail(mailOptions);
-      
+
       this.log(`Email with attachment sent successfully: ${result.messageId}`);
       return { success: true, messageId: result.messageId };
     } catch (error) {
@@ -359,15 +359,15 @@ class EmailPlugin extends BasePlugin {
       return { success: false, error: error.message };
     }
   }
-  
+
   getName() {
     return 'EmailPlugin';
   }
-  
+
   getVersion() {
     return '1.0.0';
   }
-  
+
   getStatus() {
     return {
       ...super.getStatus(),
@@ -381,7 +381,7 @@ class EmailPlugin extends BasePlugin {
       lastSent: new Date(this.rateLimiter.lastSent).toISOString()
     };
   }
-  
+
   async cleanup() {
     if (this.transporter) {
       this.transporter.close();

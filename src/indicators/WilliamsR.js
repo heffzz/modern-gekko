@@ -29,7 +29,7 @@ class WilliamsR {
     const recentCandles = this.candles.slice(-this.period);
     const highestHigh = Math.max(...recentCandles.map(c => c.high));
     const lowestLow = Math.min(...recentCandles.map(c => c.low));
-    
+
     const wr = ((highestHigh - close) / (highestHigh - lowestLow)) * -100;
     this.wrValues.push(wr);
 
@@ -108,10 +108,10 @@ class WilliamsR {
 
     const current = values[values.length - 1];
     const previous = values[values.length - 2];
-    
+
     let trend = 'sideways';
     let strength = 'weak';
-    
+
     const change = current - previous;
     const absChange = Math.abs(change);
 
@@ -130,7 +130,7 @@ class WilliamsR {
     if (values.length >= lookback + 1) {
       for (let i = values.length - lookback; i < values.length - 1; i++) {
         const currentChange = values[i + 1] - values[i];
-        if ((trend === 'uptrend' && currentChange <= 0) || 
+        if ((trend === 'uptrend' && currentChange <= 0) ||
             (trend === 'downtrend' && currentChange >= 0)) {
           consistent = false;
           break;
@@ -152,7 +152,7 @@ class WilliamsR {
   getReversalSignal() {
     const wr = this.getResult();
     const trend = this.getTrend();
-    
+
     if (!wr || !trend) return null;
 
     // Bullish reversal from oversold
@@ -325,7 +325,7 @@ class WilliamsR {
     // Determine overall recommendation
     let recommendation = 'hold';
     let confidence = 'low';
-    let reasons = [];
+    const reasons = [];
 
     if (failureSwing && failureSwing.confidence === 'high') {
       recommendation = failureSwing.signal;
@@ -340,8 +340,8 @@ class WilliamsR {
       confidence = 'medium';
       reasons.push(zoneCrossing.reason);
     } else if (signal.strength === 'very_strong' || signal.strength === 'strong') {
-      recommendation = signal.signal === 'overbought' ? 'sell' : 
-                    signal.signal === 'oversold' ? 'buy' : 'hold';
+      recommendation = signal.signal === 'overbought' ? 'sell' :
+        signal.signal === 'oversold' ? 'buy' : 'hold';
       confidence = 'medium';
       reasons.push(signal.reason);
     }

@@ -1,8 +1,8 @@
-const winston = require('winston');
-const path = require('path');
+import winston from 'winston';
+import path from 'path';
 
 // Create logs directory if it doesn't exist
-const fs = require('fs');
+import fs from 'fs';
 const logsDir = path.join(process.cwd(), 'logs');
 if (!fs.existsSync(logsDir)) {
   fs.mkdirSync(logsDir, { recursive: true });
@@ -88,38 +88,35 @@ const createModuleLogger = (module) => {
 };
 
 // Export logger and utilities
-module.exports = {
-  logger,
-  createModuleLogger,
-  
-  // Convenience methods
-  info: (message, meta = {}) => logger.info(message, meta),
-  error: (message, meta = {}) => logger.error(message, meta),
-  warn: (message, meta = {}) => logger.warn(message, meta),
-  debug: (message, meta = {}) => logger.debug(message, meta),
-  
-  // Trading specific loggers
-  trade: (message, tradeData = {}) => {
-    logger.info(message, { type: 'trade', ...tradeData });
-  },
-  
-  strategy: (message, strategyData = {}) => {
-    logger.info(message, { type: 'strategy', ...strategyData });
-  },
-  
-  backtest: (message, backtestData = {}) => {
-    logger.info(message, { type: 'backtest', ...backtestData });
-  },
-  
-  performance: (message, performanceData = {}) => {
-    logger.info(message, { type: 'performance', ...performanceData });
-  },
-  
-  api: (message, apiData = {}) => {
-    logger.info(message, { type: 'api', ...apiData });
-  },
-  
-  exchange: (message, exchangeData = {}) => {
-    logger.info(message, { type: 'exchange', ...exchangeData });
-  }
+export { logger, createModuleLogger };
+
+// Convenience methods
+export const info = (message, meta = {}) => logger.info(message, meta);
+export const error = (message, meta = {}) => logger.error(message, meta);
+export const warn = (message, meta = {}) => logger.warn(message, meta);
+export const debug = (message, meta = {}) => logger.debug(message, meta);
+
+// Trading specific loggers
+export const trade = (message, tradeData = {}) => {
+  logger.info(message, { type: 'trade', ...tradeData });
+};
+
+export const strategy = (message, strategyData = {}) => {
+  logger.info(message, { type: 'strategy', ...strategyData });
+};
+
+export const backtest = (message, backtestData = {}) => {
+  logger.info(message, { type: 'backtest', ...backtestData });
+};
+
+export const performance = (message, performanceData = {}) => {
+  logger.info(message, { type: 'performance', ...performanceData });
+};
+
+export const api = (message, apiData = {}) => {
+  logger.info(message, { type: 'api', ...apiData });
+};
+
+export const exchange = (message, exchangeData = {}) => {
+  logger.info(message, { type: 'exchange', ...exchangeData });
 };

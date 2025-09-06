@@ -435,7 +435,7 @@ describe('Backtester', () => {
       // Create a strategy that never trades
       const noTradeStrategyPath = path.join(__dirname, 'temp-no-trade-strategy.js');
       const noTradeStrategy = `
-        module.exports = {
+        export default {
           name: 'No Trade Strategy',
           description: 'A strategy that never trades',
           
@@ -596,4 +596,4 @@ function createTestCandles(count = 10) {
   return candles;
 }
 
-module.exports = { createTestCandles };
+export { createTestCandles };

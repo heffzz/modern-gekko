@@ -52,7 +52,7 @@ export default class MockExchange extends EventEmitter {
 
     this.connected = false;
     this.tradingEnabled = true;
-    
+
     // Live trading support
     this.balance = this.config.initialBalance;
     this.positions = [];
@@ -407,9 +407,9 @@ export default class MockExchange extends EventEmitter {
       tradingEnabled: this.tradingEnabled
     };
   }
-  
+
   // Live Trading Support Methods
-  
+
   /**
    * Get account information
    * @returns {Promise<Object>} Account info
@@ -418,14 +418,14 @@ export default class MockExchange extends EventEmitter {
     if (!this.connected) {
       throw new Error('Exchange not connected');
     }
-    
+
     return {
       balance: this.balance,
       currency: this.config.currency,
       timestamp: Date.now()
     };
   }
-  
+
   /**
    * Get current positions
    * @returns {Promise<Array>} Positions array
@@ -434,10 +434,10 @@ export default class MockExchange extends EventEmitter {
     if (!this.connected) {
       throw new Error('Exchange not connected');
     }
-    
+
     return [...this.positions];
   }
-  
+
   /**
    * Get open orders
    * @returns {Promise<Array>} Open orders array
@@ -446,10 +446,10 @@ export default class MockExchange extends EventEmitter {
     if (!this.connected) {
       throw new Error('Exchange not connected');
     }
-    
+
     return [...this.openOrders];
   }
-  
+
   /**
    * Create a new order
    * @param {Object} orderRequest - Order parameters
@@ -459,21 +459,21 @@ export default class MockExchange extends EventEmitter {
     if (!this.connected) {
       throw new Error('Exchange not connected');
     }
-    
+
     if (!this.tradingEnabled) {
       throw new Error('Trading is disabled');
     }
-    
+
     const { symbol, side, quantity, type, price } = orderRequest;
-    
+
     if (!symbol || !side || !quantity || !type) {
       throw new Error('Missing required order parameters');
     }
-    
+
     if (quantity <= 0) {
       throw new Error('Quantity must be positive');
     }
-    
+
     const orderId = this.generateOrderId();
     const order = {
       id: orderId,
@@ -487,25 +487,25 @@ export default class MockExchange extends EventEmitter {
       filled: 0,
       remaining: quantity
     };
-    
+
     // For market orders, execute immediately
     if (type === 'market') {
       order.status = 'filled';
       order.filled = quantity;
       order.remaining = 0;
       order.executedPrice = this.currentPrice;
-      
+
       // Update positions
       this.updatePosition(symbol, side, quantity, this.currentPrice);
     } else {
       // For limit orders, add to open orders
       this.openOrders.push(order);
     }
-    
+
     this.emit('orderCreated', order);
     return order;
   }
-  
+
   /**
    * Cancel an order
    * @param {string} orderId - Order ID to cancel
@@ -515,23 +515,23 @@ export default class MockExchange extends EventEmitter {
     if (!this.connected) {
       throw new Error('Exchange not connected');
     }
-    
+
     const orderIndex = this.openOrders.findIndex(order => order.id === orderId);
     if (orderIndex === -1) {
       throw new Error(`Order ${orderId} not found`);
     }
-    
+
     const order = this.openOrders[orderIndex];
     order.status = 'cancelled';
     order.cancelledAt = Date.now();
-    
+
     // Remove from open orders
     this.openOrders.splice(orderIndex, 1);
-    
+
     this.emit('orderCancelled', order);
     return order;
   }
-  
+
   /**
    * Update position after order execution
    * @param {string} symbol - Trading symbol
@@ -541,7 +541,7 @@ export default class MockExchange extends EventEmitter {
    */
   updatePosition(symbol, side, quantity, price) {
     let position = this.positions.find(pos => pos.symbol === symbol);
-    
+
     if (!position) {
       position = {
         symbol,
@@ -551,10 +551,10 @@ export default class MockExchange extends EventEmitter {
       };
       this.positions.push(position);
     }
-    
+
     const currentValue = position.quantity * position.avgPrice;
     const newValue = quantity * price;
-    
+
     if (side === 'buy') {
       position.quantity += quantity;
       position.avgPrice = (currentValue + newValue) / position.quantity;
@@ -569,7 +569,7 @@ export default class MockExchange extends EventEmitter {
       }
     }
   }
-  
+
   /**
    * Ping the exchange
    * @returns {Promise<Object>} Ping response
@@ -578,13 +578,13 @@ export default class MockExchange extends EventEmitter {
     if (!this.connected) {
       throw new Error('Exchange not connected');
     }
-    
+
     return {
       timestamp: Date.now(),
       latency: Math.random() * 10 + 5 // 5-15ms simulated latency
     };
   }
-  
+
   /**
    * Test connection to exchange
    * @returns {Promise<boolean>} Connection test result
@@ -593,7 +593,7 @@ export default class MockExchange extends EventEmitter {
     if (!this.connected) {
       throw new Error('Exchange not connected');
     }
-    
+
     // Simulate connection test
     await new Promise(resolve => setTimeout(resolve, 10));
     return true;

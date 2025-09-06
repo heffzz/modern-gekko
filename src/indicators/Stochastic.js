@@ -33,7 +33,7 @@ class Stochastic {
     const recentCandles = this.candles.slice(-this.kPeriod);
     const highestHigh = Math.max(...recentCandles.map(c => c.high));
     const lowestLow = Math.min(...recentCandles.map(c => c.low));
-    
+
     const kValue = ((close - lowestLow) / (highestHigh - lowestLow)) * 100;
     this.kValues.push(kValue);
 
@@ -121,7 +121,7 @@ class Stochastic {
   // Determina la zona Stochastic
   getStochasticZone(k, d) {
     const avgValue = (k + d) / 2;
-    
+
     if (avgValue > 80) return 'overbought';
     if (avgValue > 60) return 'bullish';
     if (avgValue > 40) return 'neutral';
@@ -144,7 +144,7 @@ class Stochastic {
     if (previousK <= previousD && currentK > currentD) {
       const zone = this.getStochasticZone(currentK, currentD);
       let confidence = 'medium';
-      
+
       if (zone === 'oversold') {
         confidence = 'high';
       } else if (zone === 'overbought') {
@@ -164,7 +164,7 @@ class Stochastic {
     if (previousK >= previousD && currentK < currentD) {
       const zone = this.getStochasticZone(currentK, currentD);
       let confidence = 'medium';
-      
+
       if (zone === 'overbought') {
         confidence = 'high';
       } else if (zone === 'oversold') {
@@ -309,7 +309,7 @@ class Stochastic {
     // Determine overall recommendation
     let recommendation = 'hold';
     let confidence = 'low';
-    let reasons = [];
+    const reasons = [];
 
     if (reversal && reversal.confidence === 'high') {
       recommendation = reversal.signal;
@@ -320,8 +320,8 @@ class Stochastic {
       confidence = 'medium';
       reasons.push(crossover.reason);
     } else if (signal.strength === 'strong') {
-      recommendation = signal.signal === 'overbought' ? 'sell' : 
-                    signal.signal === 'oversold' ? 'buy' : 'hold';
+      recommendation = signal.signal === 'overbought' ? 'sell' :
+        signal.signal === 'oversold' ? 'buy' : 'hold';
       confidence = 'medium';
       reasons.push(signal.reason);
     }

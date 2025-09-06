@@ -39,10 +39,10 @@ class ADX {
     // Calculate Directional Movement
     const upMove = current.high - previous.high;
     const downMove = previous.low - current.low;
-    
+
     const plusDM = (upMove > downMove && upMove > 0) ? upMove : 0;
     const minusDM = (downMove > upMove && downMove > 0) ? downMove : 0;
-    
+
     this.plusDMs.push(plusDM);
     this.minusDMs.push(minusDM);
 
@@ -105,12 +105,12 @@ class ADX {
     if (this.adxValues.length === 0) {
       return null;
     }
-    
+
     const latest = this.adxValues[this.adxValues.length - 1];
     const plusDI = this.smoothedPlusDM / this.smoothedTR * 100;
     const minusDI = this.smoothedMinusDM / this.smoothedTR * 100;
     const dx = this.dxValues[this.dxValues.length - 1];
-    
+
     return {
       adx: parseFloat(latest.toFixed(2)),
       plusDI: parseFloat(plusDI.toFixed(2)),

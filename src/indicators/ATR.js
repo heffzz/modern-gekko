@@ -28,7 +28,7 @@ class ATR {
     const tr2 = Math.abs(current.high - previous.close);
     const tr3 = Math.abs(current.low - previous.close);
     const trueRange = Math.max(tr1, tr2, tr3);
-    
+
     this.trueRanges.push(trueRange);
 
     if (this.trueRanges.length < this.period) {
@@ -60,7 +60,7 @@ class ATR {
   getATRPercent(currentPrice) {
     const atr = this.getResult();
     if (!atr || !currentPrice) return null;
-    
+
     return parseFloat(((atr / currentPrice) * 100).toFixed(2));
   }
 
@@ -112,7 +112,7 @@ class ATR {
     const riskAmount = accountBalance * (riskPercent / 100);
     const stopDistance = atr * stopMultiplier;
     const positionSize = riskAmount / stopDistance;
-    
+
     return {
       positionSize: parseFloat(positionSize.toFixed(6)),
       riskAmount: parseFloat(riskAmount.toFixed(2)),

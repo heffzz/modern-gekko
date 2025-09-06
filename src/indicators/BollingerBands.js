@@ -33,7 +33,7 @@ class BollingerBands {
     const variance = this.prices.reduce((sum, price) => {
       return sum + Math.pow(price - sma, 2);
     }, 0) / this.period;
-    
+
     const standardDeviation = Math.sqrt(variance);
 
     // Calculate Bollinger Bands
@@ -59,11 +59,11 @@ class BollingerBands {
 
     const price = this.prices[this.prices.length - 1];
     const sma = this.prices.reduce((sum, price) => sum + price, 0) / this.period;
-    
+
     const variance = this.prices.reduce((sum, price) => {
       return sum + Math.pow(price - sma, 2);
     }, 0) / this.period;
-    
+
     const standardDeviation = Math.sqrt(variance);
     const upperBand = sma + (this.stdDev * standardDeviation);
     const lowerBand = sma - (this.stdDev * standardDeviation);
@@ -148,7 +148,7 @@ class BollingerBands {
     if (!result) return null;
 
     const { bandwidth } = result;
-    
+
     if (bandwidth < 5) {
       return { type: 'extreme_squeeze', bandwidth };
     } else if (bandwidth < 10) {
@@ -158,7 +158,7 @@ class BollingerBands {
     } else if (bandwidth > 15) {
       return { type: 'expansion', bandwidth };
     }
-    
+
     return { type: 'normal', bandwidth };
   }
 
@@ -168,7 +168,7 @@ class BollingerBands {
     if (!result) return null;
 
     const { percentB, bandwidth } = result;
-    
+
     // Bounce strategy works best in low volatility environments
     if (bandwidth > 20) {
       return { signal: 'no_trade', reason: 'High volatility - bounce strategy not recommended' };
@@ -177,7 +177,7 @@ class BollingerBands {
     if (percentB <= 0) {
       return { signal: 'buy', reason: 'Price at or below lower band - bounce expected', confidence: 'medium' };
     }
-    
+
     if (percentB >= 100) {
       return { signal: 'sell', reason: 'Price at or above upper band - bounce expected', confidence: 'medium' };
     }
@@ -192,7 +192,7 @@ class BollingerBands {
 
     const { percentB, bandwidth } = result;
     const bandwidthSignal = this.getBandwidthSignal();
-    
+
     // Breakout strategy works best after squeeze
     if (bandwidthSignal.type === 'squeeze' || bandwidthSignal.type === 'extreme_squeeze') {
       if (percentB > 100) {

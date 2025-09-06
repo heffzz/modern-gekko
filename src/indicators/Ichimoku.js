@@ -9,7 +9,7 @@ class Ichimoku {
     this.tenkanPeriod = tenkanPeriod;
     this.kijunPeriod = kijunPeriod;
     this.senkouPeriod = senkouPeriod;
-    
+
     this.candles = [];
     this.tenkanValues = [];
     this.kijunValues = [];
@@ -34,7 +34,7 @@ class Ichimoku {
 
   calculate() {
     const candleCount = this.candles.length;
-    
+
     // Tenkan-sen (Conversion Line)
     let tenkan = null;
     if (candleCount >= this.tenkanPeriod) {
@@ -191,9 +191,9 @@ class Ichimoku {
     // Compare current Chikou with price 26 periods ago
     const currentChikou = this.chikouSpan[this.chikouSpan.length - 1];
     const priceIndex = this.candles.length - this.kijunPeriod - 1;
-    
+
     if (priceIndex < 0) return null;
-    
+
     const pastPrice = this.candles[priceIndex].close;
 
     if (currentChikou > pastPrice) {
@@ -227,7 +227,7 @@ class Ichimoku {
     let signal = 'neutral';
     let strength = 'weak';
     let confidence = 'low';
-    let reasons = [];
+    const reasons = [];
 
     // Strong bullish signals
     if (cloudPosition === 'above_cloud' && cloudColor === 'bullish') {
@@ -235,17 +235,17 @@ class Ichimoku {
       strength = 'strong';
       confidence = 'high';
       reasons.push('Price above bullish cloud');
-      
+
       if (currentPrice > result.tenkanSen && currentPrice > result.kijunSen) {
         reasons.push('Price above both Tenkan and Kijun');
         strength = 'very_strong';
       }
-      
+
       if (tenkanKijunCross && tenkanKijunCross.type === 'bullish_cross') {
         reasons.push('Bullish Tenkan-Kijun cross');
         confidence = 'very_high';
       }
-      
+
       if (chikouSignal && chikouSignal.signal === 'bullish') {
         reasons.push('Bullish Chikou Span');
       }
@@ -256,17 +256,17 @@ class Ichimoku {
       strength = 'strong';
       confidence = 'high';
       reasons.push('Price below bearish cloud');
-      
+
       if (currentPrice < result.tenkanSen && currentPrice < result.kijunSen) {
         reasons.push('Price below both Tenkan and Kijun');
         strength = 'very_strong';
       }
-      
+
       if (tenkanKijunCross && tenkanKijunCross.type === 'bearish_cross') {
         reasons.push('Bearish Tenkan-Kijun cross');
         confidence = 'very_high';
       }
-      
+
       if (chikouSignal && chikouSignal.signal === 'bearish') {
         reasons.push('Bearish Chikou Span');
       }
@@ -373,7 +373,7 @@ class Ichimoku {
     if (!ichimokuSignal) return null;
 
     const supportResistance = this.getSupportResistance(currentPrice);
-    
+
     let entry = null;
     let stopLoss = null;
     let takeProfit = null;
@@ -385,13 +385,13 @@ class Ichimoku {
           price: currentPrice,
           reason: ichimokuSignal.reasons.join(', ')
         };
-        
+
         // Stop loss below cloud or Kijun-sen
         const supportLevels = supportResistance.filter(level => level.type === 'support');
         if (supportLevels.length > 0) {
           stopLoss = supportLevels[0].level * 0.98; // 2% below support
         }
-        
+
         // Take profit at next resistance or 2:1 risk/reward
         if (stopLoss) {
           const riskDistance = currentPrice - stopLoss;
@@ -403,13 +403,13 @@ class Ichimoku {
           price: currentPrice,
           reason: ichimokuSignal.reasons.join(', ')
         };
-        
+
         // Stop loss above cloud or Kijun-sen
         const resistanceLevels = supportResistance.filter(level => level.type === 'resistance');
         if (resistanceLevels.length > 0) {
           stopLoss = resistanceLevels[0].level * 1.02; // 2% above resistance
         }
-        
+
         // Take profit at next support or 2:1 risk/reward
         if (stopLoss) {
           const riskDistance = stopLoss - currentPrice;
@@ -422,7 +422,7 @@ class Ichimoku {
       entry,
       stopLoss: stopLoss ? parseFloat(stopLoss.toFixed(4)) : null,
       takeProfit: takeProfit ? parseFloat(takeProfit.toFixed(4)) : null,
-      riskReward: entry && stopLoss && takeProfit ? 
+      riskReward: entry && stopLoss && takeProfit ?
         parseFloat((Math.abs(takeProfit - currentPrice) / Math.abs(stopLoss - currentPrice)).toFixed(2)) : null,
       confidence: ichimokuSignal.confidence
     };

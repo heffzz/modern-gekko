@@ -4,26 +4,26 @@ const https = require('https');
 class SlackPlugin extends BasePlugin {
   constructor(config = {}) {
     super(config);
-    
+
     this.hooks = {
       notification: this.onNotification.bind(this),
       alert: this.onAlert.bind(this),
       tradeNotification: this.onTradeNotification.bind(this),
       performanceReport: this.onPerformanceReport.bind(this)
     };
-    
+
     this.rateLimiter = {
       lastSent: 0,
       minInterval: 1000 // 1 second between messages
     };
   }
-  
+
   async initialize() {
     await super.initialize();
-    
+
     // Validate required configuration
     this.validateConfig(['webhookUrl']);
-    
+
     // Test webhook
     try {
       await this.testWebhook();
@@ -33,7 +33,7 @@ class SlackPlugin extends BasePlugin {
       throw error;
     }
   }
-  
+
   async testWebhook() {
     try {
       const testMessage = {
@@ -45,7 +45,7 @@ class SlackPlugin extends BasePlugin {
           ts: Math.floor(Date.now() / 1000)
         }]
       };
-      
+
       const response = await this.sendWebhook(testMessage);
       if (response.success) {
         this.log('Slack webhook test successful');
@@ -57,39 +57,39 @@ class SlackPlugin extends BasePlugin {
       throw new Error(`Slack webhook test failed: ${error.message}`);
     }
   }
-  
+
   async onNotification(data) {
     if (!this.isEnabled()) return;
-    
+
     const message = this.formatNotificationMessage(data);
     return await this.sendMessage(message);
   }
-  
+
   async onAlert(data) {
     if (!this.isEnabled()) return;
-    
+
     const message = this.formatAlertMessage(data);
     return await this.sendMessage(message);
   }
-  
+
   async onTradeNotification(data) {
     if (!this.isEnabled()) return;
-    
+
     const message = this.formatTradeMessage(data.trade);
     return await this.sendMessage(message);
   }
-  
+
   async onPerformanceReport(data) {
     if (!this.isEnabled()) return;
-    
+
     const message = this.formatPerformanceMessage(data.performance);
     return await this.sendMessage(message);
   }
-  
+
   formatNotificationMessage(data) {
     const emoji = this.getTypeEmoji(data.type);
     const color = this.getTypeColor(data.type);
-    
+
     return {
       text: `${emoji} Trading Bot Notification`,
       attachments: [{
@@ -116,11 +116,11 @@ class SlackPlugin extends BasePlugin {
       }]
     };
   }
-  
+
   formatAlertMessage(data) {
     const emoji = this.getLevelEmoji(data.level);
     const color = this.getLevelColor(data.level);
-    
+
     const fields = [
       {
         title: 'Level',
@@ -138,7 +138,7 @@ class SlackPlugin extends BasePlugin {
         short: false
       }
     ];
-    
+
     if (data.data) {
       fields.push({
         title: 'Additional Data',
@@ -146,7 +146,7 @@ class SlackPlugin extends BasePlugin {
         short: false
       });
     }
-    
+
     return {
       text: `${emoji} TRADING BOT ALERT`,
       channel: this.config.alertChannel || this.config.channel,
@@ -158,12 +158,12 @@ class SlackPlugin extends BasePlugin {
       }]
     };
   }
-  
+
   formatTradeMessage(trade) {
     const sideEmoji = trade.side === 'buy' ? '🟢' : '🔴';
     const sideColor = trade.side === 'buy' ? 'good' : 'danger';
     const pnlEmoji = trade.pnl > 0 ? '💰' : trade.pnl < 0 ? '💸' : '➖';
-    
+
     const fields = [
       {
         title: 'Symbol',
@@ -196,7 +196,7 @@ class SlackPlugin extends BasePlugin {
         short: true
       }
     ];
-    
+
     if (trade.pnl !== undefined) {
       fields.push({
         title: 'P&L',
@@ -204,7 +204,7 @@ class SlackPlugin extends BasePlugin {
         short: true
       });
     }
-    
+
     return {
       text: `${sideEmoji} Trade Executed`,
       attachments: [{
@@ -215,11 +215,11 @@ class SlackPlugin extends BasePlugin {
       }]
     };
   }
-  
+
   formatPerformanceMessage(performance) {
     const profitEmoji = performance.totalProfit > 0 ? '📈' : '📉';
     const profitColor = performance.totalProfit > 0 ? 'good' : 'danger';
-    
+
     const fields = [
       {
         title: 'Total Trades',
@@ -252,7 +252,7 @@ class SlackPlugin extends BasePlugin {
         short: true
       }
     ];
-    
+
     if (performance.roi !== undefined) {
       fields.push({
         title: 'ROI',
@@ -260,13 +260,13 @@ class SlackPlugin extends BasePlugin {
         short: true
       });
     }
-    
+
     fields.push({
       title: 'Report Generated',
       value: new Date().toLocaleString(),
       short: true
     });
-    
+
     return {
       text: `${profitEmoji} Performance Report`,
       attachments: [{
@@ -277,7 +277,7 @@ class SlackPlugin extends BasePlugin {
       }]
     };
   }
-  
+
   getTypeColor(type) {
     const colors = {
       trade: '#007bff',
@@ -288,10 +288,10 @@ class SlackPlugin extends BasePlugin {
       warning: 'warning',
       info: '#17a2b8'
     };
-    
+
     return colors[type] || '#6c757d';
   }
-  
+
   getLevelColor(level) {
     const colors = {
       low: '#17a2b8',
@@ -299,10 +299,10 @@ class SlackPlugin extends BasePlugin {
       high: 'danger',
       critical: '#721c24'
     };
-    
+
     return colors[level] || '#6c757d';
   }
-  
+
   getTypeEmoji(type) {
     const emojis = {
       trade: '💱',
@@ -313,10 +313,10 @@ class SlackPlugin extends BasePlugin {
       warning: '⚠️',
       info: 'ℹ️'
     };
-    
+
     return emojis[type] || '📢';
   }
-  
+
   getLevelEmoji(level) {
     const emojis = {
       low: 'ℹ️',
@@ -324,10 +324,10 @@ class SlackPlugin extends BasePlugin {
       high: '🚨',
       critical: '🔥'
     };
-    
+
     return emojis[level] || '📢';
   }
-  
+
   async sendMessage(payload) {
     try {
       // Rate limiting
@@ -335,28 +335,28 @@ class SlackPlugin extends BasePlugin {
       if (now - this.rateLimiter.lastSent < this.rateLimiter.minInterval) {
         await new Promise(resolve => setTimeout(resolve, this.rateLimiter.minInterval));
       }
-      
+
       // Add default channel if specified
       if (this.config.channel && !payload.channel) {
         payload.channel = this.config.channel;
       }
-      
+
       // Add username if specified
       if (this.config.username) {
         payload.username = this.config.username;
       }
-      
+
       // Add icon if specified
       if (this.config.iconEmoji) {
         payload.icon_emoji = this.config.iconEmoji;
       } else if (this.config.iconUrl) {
         payload.icon_url = this.config.iconUrl;
       }
-      
+
       const response = await this.sendWebhook(payload);
-      
+
       this.rateLimiter.lastSent = Date.now();
-      
+
       if (response.success) {
         this.log('Slack message sent successfully');
         return { success: true };
@@ -368,12 +368,12 @@ class SlackPlugin extends BasePlugin {
       return { success: false, error: error.message };
     }
   }
-  
+
   async sendWebhook(payload) {
     return new Promise((resolve, reject) => {
       const data = JSON.stringify(payload);
       const url = new URL(this.config.webhookUrl);
-      
+
       const options = {
         hostname: url.hostname,
         port: 443,
@@ -385,42 +385,42 @@ class SlackPlugin extends BasePlugin {
           'User-Agent': 'TradingBot/1.0'
         }
       };
-      
+
       const req = https.request(options, (res) => {
         let responseData = '';
-        
+
         res.on('data', (chunk) => {
           responseData += chunk;
         });
-        
+
         res.on('end', () => {
           if (res.statusCode >= 200 && res.statusCode < 300) {
             resolve({ success: true, statusCode: res.statusCode });
           } else {
-            resolve({ 
-              success: false, 
+            resolve({
+              success: false,
               error: `HTTP ${res.statusCode}: ${responseData}`,
               statusCode: res.statusCode
             });
           }
         });
       });
-      
+
       req.on('error', (error) => {
         reject(error);
       });
-      
+
       req.on('timeout', () => {
         req.destroy();
         reject(new Error('Request timeout'));
       });
-      
+
       req.setTimeout(10000); // 10 second timeout
       req.write(data);
       req.end();
     });
   }
-  
+
   async sendFile(filePath, filename, initialComment = '') {
     try {
       // Slack file upload requires different API endpoint and token
@@ -434,14 +434,14 @@ class SlackPlugin extends BasePlugin {
           ts: Math.floor(Date.now() / 1000)
         }]
       };
-      
+
       return await this.sendMessage(payload);
     } catch (error) {
       this.error('Failed to send file to Slack', error);
       return { success: false, error: error.message };
     }
   }
-  
+
   async sendChart(chartData, title = 'Trading Chart') {
     try {
       // Simplified chart representation
@@ -449,7 +449,7 @@ class SlackPlugin extends BasePlugin {
         text: `📊 ${title}`,
         attachments: [{
           color: '#007bff',
-          title: title,
+          title,
           text: 'Chart data available',
           fields: [
             {
@@ -466,22 +466,22 @@ class SlackPlugin extends BasePlugin {
           ts: Math.floor(Date.now() / 1000)
         }]
       };
-      
+
       return await this.sendMessage(payload);
     } catch (error) {
       this.error('Failed to send chart to Slack', error);
       return { success: false, error: error.message };
     }
   }
-  
+
   getName() {
     return 'SlackPlugin';
   }
-  
+
   getVersion() {
     return '1.0.0';
   }
-  
+
   getStatus() {
     return {
       ...super.getStatus(),

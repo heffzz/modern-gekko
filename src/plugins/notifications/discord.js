@@ -4,26 +4,26 @@ const https = require('https');
 class DiscordPlugin extends BasePlugin {
   constructor(config = {}) {
     super(config);
-    
+
     this.hooks = {
       notification: this.onNotification.bind(this),
       alert: this.onAlert.bind(this),
       tradeNotification: this.onTradeNotification.bind(this),
       performanceReport: this.onPerformanceReport.bind(this)
     };
-    
+
     this.rateLimiter = {
       lastSent: 0,
       minInterval: 1000 // 1 second between messages
     };
   }
-  
+
   async initialize() {
     await super.initialize();
-    
+
     // Validate required configuration
     this.validateConfig(['webhookUrl']);
-    
+
     // Test webhook
     try {
       await this.testWebhook();
@@ -33,7 +33,7 @@ class DiscordPlugin extends BasePlugin {
       throw error;
     }
   }
-  
+
   async testWebhook() {
     try {
       const testMessage = {
@@ -45,7 +45,7 @@ class DiscordPlugin extends BasePlugin {
           timestamp: new Date().toISOString()
         }]
       };
-      
+
       const response = await this.sendWebhook(testMessage);
       if (response.success) {
         this.log('Discord webhook test successful');
@@ -57,42 +57,42 @@ class DiscordPlugin extends BasePlugin {
       throw new Error(`Discord webhook test failed: ${error.message}`);
     }
   }
-  
+
   async onNotification(data) {
     if (!this.isEnabled()) return;
-    
+
     const embed = this.formatNotificationEmbed(data);
     return await this.sendMessage({ embeds: [embed] });
   }
-  
+
   async onAlert(data) {
     if (!this.isEnabled()) return;
-    
+
     const embed = this.formatAlertEmbed(data);
-    return await this.sendMessage({ 
+    return await this.sendMessage({
       content: this.config.mentionRole ? `<@&${this.config.mentionRole}>` : undefined,
-      embeds: [embed] 
+      embeds: [embed]
     });
   }
-  
+
   async onTradeNotification(data) {
     if (!this.isEnabled()) return;
-    
+
     const embed = this.formatTradeEmbed(data.trade);
     return await this.sendMessage({ embeds: [embed] });
   }
-  
+
   async onPerformanceReport(data) {
     if (!this.isEnabled()) return;
-    
+
     const embed = this.formatPerformanceEmbed(data.performance);
     return await this.sendMessage({ embeds: [embed] });
   }
-  
+
   formatNotificationEmbed(data) {
     const color = this.getTypeColor(data.type);
     const emoji = this.getTypeEmoji(data.type);
-    
+
     return {
       title: `${emoji} ${data.type.toUpperCase()} Notification`,
       description: '```json\n' + JSON.stringify(data.data, null, 2) + '\n```',
@@ -103,11 +103,11 @@ class DiscordPlugin extends BasePlugin {
       }
     };
   }
-  
+
   formatAlertEmbed(data) {
     const color = this.getLevelColor(data.level);
     const emoji = this.getLevelEmoji(data.level);
-    
+
     return {
       title: `${emoji} ALERT - ${data.level.toUpperCase()}`,
       description: data.message,
@@ -123,12 +123,12 @@ class DiscordPlugin extends BasePlugin {
       }
     };
   }
-  
+
   formatTradeEmbed(trade) {
     const sideColor = trade.side === 'buy' ? 0x28a745 : 0xdc3545;
     const sideEmoji = trade.side === 'buy' ? '🟢' : '🔴';
     const pnlEmoji = trade.pnl > 0 ? '💰' : trade.pnl < 0 ? '💸' : '➖';
-    
+
     const fields = [
       {
         name: 'Symbol',
@@ -156,7 +156,7 @@ class DiscordPlugin extends BasePlugin {
         inline: true
       }
     ];
-    
+
     if (trade.pnl !== undefined) {
       fields.push({
         name: 'P&L',
@@ -164,7 +164,7 @@ class DiscordPlugin extends BasePlugin {
         inline: true
       });
     }
-    
+
     return {
       title: `${sideEmoji} Trade Executed`,
       color: sideColor,
@@ -175,11 +175,11 @@ class DiscordPlugin extends BasePlugin {
       }
     };
   }
-  
+
   formatPerformanceEmbed(performance) {
     const profitColor = performance.totalProfit > 0 ? 0x28a745 : 0xdc3545;
     const profitEmoji = performance.totalProfit > 0 ? '📈' : '📉';
-    
+
     const fields = [
       {
         name: 'Total Trades',
@@ -212,7 +212,7 @@ class DiscordPlugin extends BasePlugin {
         inline: true
       }
     ];
-    
+
     if (performance.roi !== undefined) {
       fields.push({
         name: 'ROI',
@@ -220,7 +220,7 @@ class DiscordPlugin extends BasePlugin {
         inline: true
       });
     }
-    
+
     return {
       title: `${profitEmoji} Performance Report`,
       color: profitColor,
@@ -231,7 +231,7 @@ class DiscordPlugin extends BasePlugin {
       }
     };
   }
-  
+
   getTypeColor(type) {
     const colors = {
       trade: 0x007bff,
@@ -242,10 +242,10 @@ class DiscordPlugin extends BasePlugin {
       warning: 0xfd7e14,
       info: 0x17a2b8
     };
-    
+
     return colors[type] || 0x6c757d;
   }
-  
+
   getLevelColor(level) {
     const colors = {
       low: 0x17a2b8,
@@ -253,10 +253,10 @@ class DiscordPlugin extends BasePlugin {
       high: 0xdc3545,
       critical: 0x721c24
     };
-    
+
     return colors[level] || 0x6c757d;
   }
-  
+
   getTypeEmoji(type) {
     const emojis = {
       trade: '💱',
@@ -267,10 +267,10 @@ class DiscordPlugin extends BasePlugin {
       warning: '⚠️',
       info: 'ℹ️'
     };
-    
+
     return emojis[type] || '📢';
   }
-  
+
   getLevelEmoji(level) {
     const emojis = {
       low: 'ℹ️',
@@ -278,10 +278,10 @@ class DiscordPlugin extends BasePlugin {
       high: '🚨',
       critical: '🔥'
     };
-    
+
     return emojis[level] || '📢';
   }
-  
+
   async sendMessage(payload) {
     try {
       // Rate limiting
@@ -289,11 +289,11 @@ class DiscordPlugin extends BasePlugin {
       if (now - this.rateLimiter.lastSent < this.rateLimiter.minInterval) {
         await new Promise(resolve => setTimeout(resolve, this.rateLimiter.minInterval));
       }
-      
+
       const response = await this.sendWebhook(payload);
-      
+
       this.rateLimiter.lastSent = Date.now();
-      
+
       if (response.success) {
         this.log('Discord message sent successfully');
         return { success: true };
@@ -305,12 +305,12 @@ class DiscordPlugin extends BasePlugin {
       return { success: false, error: error.message };
     }
   }
-  
+
   async sendWebhook(payload) {
     return new Promise((resolve, reject) => {
       const data = JSON.stringify(payload);
       const url = new URL(this.config.webhookUrl);
-      
+
       const options = {
         hostname: url.hostname,
         port: 443,
@@ -322,42 +322,42 @@ class DiscordPlugin extends BasePlugin {
           'User-Agent': 'TradingBot/1.0'
         }
       };
-      
+
       const req = https.request(options, (res) => {
         let responseData = '';
-        
+
         res.on('data', (chunk) => {
           responseData += chunk;
         });
-        
+
         res.on('end', () => {
           if (res.statusCode >= 200 && res.statusCode < 300) {
             resolve({ success: true, statusCode: res.statusCode });
           } else {
-            resolve({ 
-              success: false, 
+            resolve({
+              success: false,
               error: `HTTP ${res.statusCode}: ${responseData}`,
               statusCode: res.statusCode
             });
           }
         });
       });
-      
+
       req.on('error', (error) => {
         reject(error);
       });
-      
+
       req.on('timeout', () => {
         req.destroy();
         reject(new Error('Request timeout'));
       });
-      
+
       req.setTimeout(10000); // 10 second timeout
       req.write(data);
       req.end();
     });
   }
-  
+
   async sendFile(filePath, filename, content = '') {
     try {
       // Discord webhook file upload requires multipart/form-data
@@ -371,22 +371,22 @@ class DiscordPlugin extends BasePlugin {
           timestamp: new Date().toISOString()
         }]
       };
-      
+
       return await this.sendMessage(payload);
     } catch (error) {
       this.error('Failed to send file to Discord', error);
       return { success: false, error: error.message };
     }
   }
-  
+
   getName() {
     return 'DiscordPlugin';
   }
-  
+
   getVersion() {
     return '1.0.0';
   }
-  
+
   getStatus() {
     return {
       ...super.getStatus(),

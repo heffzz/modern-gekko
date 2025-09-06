@@ -65,10 +65,10 @@ class DEMA {
 
     const current = values[values.length - 1];
     const previous = values[values.length - 2];
-    
+
     let trend = 'sideways';
     let strength = 'weak';
-    
+
     const change = ((current - previous) / previous) * 100;
     const absChange = Math.abs(change);
 
@@ -87,7 +87,7 @@ class DEMA {
     if (values.length >= lookback + 1) {
       for (let i = values.length - lookback; i < values.length - 1; i++) {
         const currentChange = values[i + 1] - values[i];
-        if ((trend === 'uptrend' && currentChange <= 0) || 
+        if ((trend === 'uptrend' && currentChange <= 0) ||
             (trend === 'downtrend' && currentChange >= 0)) {
           consistent = false;
           break;
@@ -151,9 +151,9 @@ class DEMA {
   // Crossover signals
   getCrossoverSignal(currentPrice, previousPrice) {
     const currentDEMA = this.getResult();
-    const previousDEMA = this.demaValues.length > 1 ? 
+    const previousDEMA = this.demaValues.length > 1 ?
       this.demaValues[this.demaValues.length - 2] : null;
-    
+
     if (!currentDEMA || !previousDEMA || !currentPrice || !previousPrice) {
       return null;
     }
@@ -219,7 +219,7 @@ class DEMA {
   getEntryExitSignals(currentPrice, riskTolerance = 'medium') {
     const signal = this.getSignal(currentPrice);
     const supportResistance = this.getSupportResistance();
-    
+
     if (!signal || !supportResistance) return null;
 
     const riskMultipliers = {

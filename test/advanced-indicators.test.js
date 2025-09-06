@@ -22,11 +22,11 @@ describe('Advanced Indicators Tests', () => {
   describe('ADX Indicator', () => {
     test('should calculate ADX values correctly', () => {
       const adx = new ADX(14);
-      
+
       sampleCandles.forEach(candle => {
         adx.update(candle);
       });
-      
+
       const result = adx.getResult();
       expect(result).toHaveProperty('adx');
       expect(result).toHaveProperty('pdi');
@@ -38,11 +38,11 @@ describe('Advanced Indicators Tests', () => {
 
     test('should detect trend strength', () => {
       const adx = new ADX(14);
-      
+
       sampleCandles.forEach(candle => {
         adx.update(candle);
       });
-      
+
       const strength = adx.getTrendStrength();
       expect(['weak', 'moderate', 'strong', 'very_strong']).toContain(strength);
     });
@@ -51,11 +51,11 @@ describe('Advanced Indicators Tests', () => {
   describe('ATR Indicator', () => {
     test('should calculate ATR values correctly', () => {
       const atr = new ATR(14);
-      
+
       sampleCandles.forEach(candle => {
         atr.update(candle);
       });
-      
+
       const result = atr.getResult();
       expect(typeof result).toBe('number');
       expect(result).toBeGreaterThan(0);
@@ -63,11 +63,11 @@ describe('Advanced Indicators Tests', () => {
 
     test('should calculate position size', () => {
       const atr = new ATR(14);
-      
+
       sampleCandles.forEach(candle => {
         atr.update(candle);
       });
-      
+
       const positionSize = atr.calculatePositionSize(10000, 0.02, 50);
       expect(typeof positionSize).toBe('number');
       expect(positionSize).toBeGreaterThan(0);
@@ -77,11 +77,11 @@ describe('Advanced Indicators Tests', () => {
   describe('Bollinger Bands Indicator', () => {
     test('should calculate Bollinger Bands correctly', () => {
       const bb = new BollingerBands(20, 2);
-      
+
       sampleCandles.forEach(candle => {
         bb.update(candle.close);
       });
-      
+
       const result = bb.getResult();
       expect(result).toHaveProperty('upper');
       expect(result).toHaveProperty('middle');
@@ -92,11 +92,11 @@ describe('Advanced Indicators Tests', () => {
 
     test('should detect squeeze conditions', () => {
       const bb = new BollingerBands(20, 2);
-      
+
       sampleCandles.forEach(candle => {
         bb.update(candle.close);
       });
-      
+
       const signal = bb.getSignal(50);
       expect(signal).toHaveProperty('position');
       expect(signal).toHaveProperty('squeeze');
@@ -107,22 +107,22 @@ describe('Advanced Indicators Tests', () => {
   describe('CCI Indicator', () => {
     test('should calculate CCI values correctly', () => {
       const cci = new CCI(20);
-      
+
       sampleCandles.forEach(candle => {
         cci.update(candle);
       });
-      
+
       const result = cci.getResult();
       expect(typeof result).toBe('number');
     });
 
     test('should detect overbought/oversold conditions', () => {
       const cci = new CCI(20);
-      
+
       sampleCandles.forEach(candle => {
         cci.update(candle);
       });
-      
+
       const signal = cci.getSignal();
       expect(signal).toHaveProperty('zone');
       expect(signal).toHaveProperty('momentum');
@@ -132,11 +132,11 @@ describe('Advanced Indicators Tests', () => {
   describe('DEMA Indicator', () => {
     test('should calculate DEMA values correctly', () => {
       const dema = new DEMA(14);
-      
+
       sampleCandles.forEach(candle => {
         dema.update(candle.close);
       });
-      
+
       const result = dema.getResult();
       expect(typeof result).toBe('number');
       expect(result).toBeGreaterThan(0);
@@ -144,11 +144,11 @@ describe('Advanced Indicators Tests', () => {
 
     test('should generate trend signals', () => {
       const dema = new DEMA(14);
-      
+
       sampleCandles.forEach(candle => {
         dema.update(candle.close);
       });
-      
+
       const signal = dema.getSignal(50);
       expect(signal).toHaveProperty('trend');
       expect(signal).toHaveProperty('crossover');
@@ -158,11 +158,11 @@ describe('Advanced Indicators Tests', () => {
   describe('Stochastic Indicator', () => {
     test('should calculate Stochastic values correctly', () => {
       const stoch = new Stochastic(14, 3, 3);
-      
+
       sampleCandles.forEach(candle => {
         stoch.update(candle);
       });
-      
+
       const result = stoch.getResult();
       expect(result).toHaveProperty('k');
       expect(result).toHaveProperty('d');
@@ -174,11 +174,11 @@ describe('Advanced Indicators Tests', () => {
 
     test('should detect overbought/oversold conditions', () => {
       const stoch = new Stochastic(14, 3, 3);
-      
+
       sampleCandles.forEach(candle => {
         stoch.update(candle);
       });
-      
+
       const signal = stoch.getSignal();
       expect(signal).toHaveProperty('overbought');
       expect(signal).toHaveProperty('oversold');
@@ -189,11 +189,11 @@ describe('Advanced Indicators Tests', () => {
   describe('Williams %R Indicator', () => {
     test('should calculate Williams %R values correctly', () => {
       const wr = new WilliamsR(14);
-      
+
       sampleCandles.forEach(candle => {
         wr.update(candle);
       });
-      
+
       const result = wr.getResult();
       expect(typeof result).toBe('number');
       expect(result).toBeGreaterThanOrEqual(-100);
@@ -202,11 +202,11 @@ describe('Advanced Indicators Tests', () => {
 
     test('should detect reversal signals', () => {
       const wr = new WilliamsR(14);
-      
+
       sampleCandles.forEach(candle => {
         wr.update(candle);
       });
-      
+
       const signal = wr.getSignal();
       expect(signal).toHaveProperty('overbought');
       expect(signal).toHaveProperty('oversold');
@@ -217,11 +217,11 @@ describe('Advanced Indicators Tests', () => {
   describe('Parabolic SAR Indicator', () => {
     test('should calculate Parabolic SAR values correctly', () => {
       const psar = new ParabolicSAR(0.02, 0.2);
-      
+
       sampleCandles.forEach(candle => {
         psar.update(candle);
       });
-      
+
       const result = psar.getResult();
       expect(typeof result).toBe('number');
       expect(result).toBeGreaterThan(0);
@@ -229,11 +229,11 @@ describe('Advanced Indicators Tests', () => {
 
     test('should detect trend reversals', () => {
       const psar = new ParabolicSAR(0.02, 0.2);
-      
+
       sampleCandles.forEach(candle => {
         psar.update(candle);
       });
-      
+
       const signal = psar.getSignal(50);
       expect(signal).toHaveProperty('trend');
       expect(signal).toHaveProperty('reversal');
@@ -244,11 +244,11 @@ describe('Advanced Indicators Tests', () => {
   describe('Ichimoku Indicator', () => {
     test('should calculate Ichimoku components correctly', () => {
       const ichimoku = new Ichimoku(9, 26, 52);
-      
+
       sampleCandles.forEach(candle => {
         ichimoku.update(candle);
       });
-      
+
       const result = ichimoku.getResult();
       expect(result).toHaveProperty('tenkanSen');
       expect(result).toHaveProperty('kijunSen');
@@ -259,11 +259,11 @@ describe('Advanced Indicators Tests', () => {
 
     test('should analyze cloud conditions', () => {
       const ichimoku = new Ichimoku(9, 26, 52);
-      
+
       sampleCandles.forEach(candle => {
         ichimoku.update(candle);
       });
-      
+
       const cloudAnalysis = ichimoku.getCloudAnalysis(50);
       expect(cloudAnalysis).toHaveProperty('color');
       expect(cloudAnalysis).toHaveProperty('position');
@@ -272,11 +272,11 @@ describe('Advanced Indicators Tests', () => {
 
     test('should generate comprehensive signals', () => {
       const ichimoku = new Ichimoku(9, 26, 52);
-      
+
       sampleCandles.forEach(candle => {
         ichimoku.update(candle);
       });
-      
+
       const signal = ichimoku.getComplexSignal(50);
       expect(signal).toHaveProperty('strength');
       expect(signal).toHaveProperty('trend');
