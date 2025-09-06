@@ -2,6 +2,8 @@
 
 A modern fork of askmike/gekko - Trading bot and backtester with Vue 3 UI
 
+> Updated for Vercel deployment
+
 ## Features
 
 - 📈 **Backtesting Engine**: Test your strategies against historical data
