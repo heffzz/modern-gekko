@@ -1,0 +1,16 @@
+{
+  "progress": 75,
+  "status": "running",
+  "currentStep": "Processing trades and calculating performance metrics",
+  "estimatedTimeRemaining": 30000,
+  "processedCandles": 750,
+  "totalCandles": 1000,
+  "currentDate": "2024-01-23",
+  "tradesExecuted": 12,
+  "currentEquity": 10850.50,
+  "currentDrawdown": 0.025,
+  "errors": [],
+  "warnings": [
+    "Low volume detected on 2024-01-15"
+  ]
+}

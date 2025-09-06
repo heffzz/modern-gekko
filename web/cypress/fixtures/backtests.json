@@ -1,0 +1,174 @@
+[
+  {
+    "id": "bt_1704067200_sample",
+    "strategyId": "sample-strategy",
+    "status": "completed",
+    "startTime": "2024-01-01T00:00:00Z",
+    "endTime": "2024-01-01T00:05:30Z",
+    "duration": 330000,
+    "performance": {
+      "totalReturn": 0.1547,
+      "annualizedReturn": 0.1823,
+      "maxDrawdown": 0.0485,
+      "sharpeRatio": 1.24,
+      "winRate": 0.6538,
+      "profitFactor": 1.87,
+      "totalTrades": 26,
+      "winningTrades": 17,
+      "losingTrades": 9,
+      "averageWin": 0.0234,
+      "averageLoss": -0.0127,
+      "largestWin": 0.0856,
+      "largestLoss": -0.0342,
+      "consecutiveWins": 5,
+      "consecutiveLosses": 3,
+      "volatility": 0.1247,
+      "calmarRatio": 3.76,
+      "sortinoRatio": 1.58
+    },
+    "trades": [
+      {
+        "id": "trade_1",
+        "entryTime": "2024-01-02T10:30:00Z",
+        "exitTime": "2024-01-03T14:15:00Z",
+        "side": "long",
+        "entryPrice": 47200.00,
+        "exitPrice": 48500.00,
+        "quantity": 0.2,
+        "pnl": 260.00,
+        "pnlPercent": 0.0275,
+        "fees": 9.44,
+        "duration": 100500000
+      },
+      {
+        "id": "trade_2",
+        "entryTime": "2024-01-05T09:45:00Z",
+        "exitTime": "2024-01-06T16:20:00Z",
+        "side": "short",
+        "entryPrice": 49800.00,
+        "exitPrice": 48900.00,
+        "quantity": 0.18,
+        "pnl": 162.00,
+        "pnlPercent": 0.0181,
+        "fees": 8.78,
+        "duration": 109500000
+      }
+    ],
+    "equity": [
+      { "time": "2024-01-01T00:00:00Z", "value": 10000.00 },
+      { "time": "2024-01-02T00:00:00Z", "value": 10050.00 },
+      { "time": "2024-01-03T00:00:00Z", "value": 10310.00 },
+      { "time": "2024-01-04T00:00:00Z", "value": 10285.00 },
+      { "time": "2024-01-05T00:00:00Z", "value": 10420.00 },
+      { "time": "2024-01-06T00:00:00Z", "value": 10582.00 }
+    ],
+    "parameters": {
+      "period": 20,
+      "threshold": 0.02
+    },
+    "dataSource": {
+      "type": "csv",
+      "startDate": "2024-01-01",
+      "endDate": "2024-01-31",
+      "symbol": "BTCUSD"
+    },
+    "portfolio": {
+      "initialCapital": 10000,
+      "tradingFee": 0.001,
+      "slippage": 0.0005
+    }
+  },
+  {
+    "id": "bt_1703980800_rsi",
+    "strategyId": "another-strategy",
+    "status": "running",
+    "startTime": "2023-12-31T00:00:00Z",
+    "endTime": null,
+    "duration": 0,
+    "performance": {
+      "totalReturn": 0.0234,
+      "annualizedReturn": 0.0287,
+      "maxDrawdown": 0.0156,
+      "sharpeRatio": 0.78,
+      "winRate": 0.5833,
+      "profitFactor": 1.34,
+      "totalTrades": 12,
+      "winningTrades": 7,
+      "losingTrades": 5,
+      "averageWin": 0.0189,
+      "averageLoss": -0.0098,
+      "largestWin": 0.0456,
+      "largestLoss": -0.0234,
+      "consecutiveWins": 3,
+      "consecutiveLosses": 2,
+      "volatility": 0.0987,
+      "calmarRatio": 1.84,
+      "sortinoRatio": 1.12
+    },
+    "trades": [],
+    "equity": [],
+    "parameters": {
+      "period": 14,
+      "lookback": 5,
+      "oversold": 30,
+      "overbought": 70
+    },
+    "dataSource": {
+      "type": "csv",
+      "startDate": "2023-12-01",
+      "endDate": "2023-12-31",
+      "symbol": "ETHUSD"
+    },
+    "portfolio": {
+      "initialCapital": 25000,
+      "tradingFee": 0.0015,
+      "slippage": 0.001
+    }
+  },
+  {
+    "id": "bt_1703894400_failed",
+    "strategyId": "sample-strategy",
+    "status": "failed",
+    "startTime": "2023-12-30T00:00:00Z",
+    "endTime": "2023-12-30T00:02:15Z",
+    "duration": 135000,
+    "error": "Invalid CSV format: missing required columns",
+    "performance": {
+      "totalReturn": 0,
+      "annualizedReturn": 0,
+      "maxDrawdown": 0,
+      "sharpeRatio": 0,
+      "winRate": 0,
+      "profitFactor": 0,
+      "totalTrades": 0,
+      "winningTrades": 0,
+      "losingTrades": 0,
+      "averageWin": 0,
+      "averageLoss": 0,
+      "largestWin": 0,
+      "largestLoss": 0,
+      "consecutiveWins": 0,
+      "consecutiveLosses": 0,
+      "volatility": 0,
+      "calmarRatio": 0,
+      "sortinoRatio": 0
+    },
+    "trades": [],
+    "equity": [],
+    "parameters": {
+      "period": 15,
+      "threshold": 0.025
+    },
+    "dataSource": {
+      "type": "csv",
+      "startDate": "2023-11-01",
+      "endDate": "2023-11-30",
+      "symbol": "BTCUSD"
+    },
+    "portfolio": {
+      "initialCapital": 15000,
+      "tradingFee": 0.001,
+      "slippage": 0.0005
+    }
+  }
+]

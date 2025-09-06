@@ -1,0 +1,70 @@
+[
+  {
+    "id": "sample-strategy",
+    "name": "Sample Moving Average Strategy",
+    "description": "A simple moving average crossover strategy for testing",
+    "parameters": {
+      "period": {
+        "type": "number",
+        "default": 20,
+        "min": 5,
+        "max": 200,
+        "step": 1,
+        "description": "Moving average period"
+      },
+      "threshold": {
+        "type": "number",
+        "default": 0.02,
+        "min": 0,
+        "max": 0.1,
+        "step": 0.001,
+        "description": "Signal threshold"
+      }
+    },
+    "code": "const { SMA } = require('../indicators');\n\nmodule.exports = {\n  init() {\n    this.sma = new SMA(this.settings.period);\n    this.addIndicator('sma', this.sma);\n  },\n\n  update(candle) {\n    this.sma.update(candle.close);\n  },\n\n  check(candle) {\n    if (!this.sma.isReady) return;\n\n    const price = candle.close;\n    const smaValue = this.sma.result;\n    const diff = (price - smaValue) / smaValue;\n\n    if (diff > this.settings.threshold) {\n      this.advice('long');\n    } else if (diff < -this.settings.threshold) {\n      this.advice('short');\n    }\n  }\n};",
+    "createdAt": "2024-01-01T00:00:00Z",
+    "updatedAt": "2024-01-01T00:00:00Z"
+  },
+  {
+    "id": "another-strategy",
+    "name": "RSI Strategy",
+    "description": "RSI-based momentum strategy",
+    "parameters": {
+      "period": {
+        "type": "number",
+        "default": 14,
+        "min": 2,
+        "max": 100,
+        "step": 1,
+        "description": "RSI period"
+      },
+      "lookback": {
+        "type": "number",
+        "default": 5,
+        "min": 1,
+        "max": 20,
+        "step": 1,
+        "description": "Lookback period"
+      },
+      "oversold": {
+        "type": "number",
+        "default": 30,
+        "min": 10,
+        "max": 50,
+        "step": 1,
+        "description": "Oversold threshold"
+      },
+      "overbought": {
+        "type": "number",
+        "default": 70,
+        "min": 50,
+        "max": 90,
+        "step": 1,
+        "description": "Overbought threshold"
+      }
+    },
+    "code": "const { RSI } = require('../indicators');\n\nmodule.exports = {\n  init() {\n    this.rsi = new RSI(this.settings.period);\n    this.addIndicator('rsi', this.rsi);\n  },\n\n  update(candle) {\n    this.rsi.update(candle.close);\n  },\n\n  check(candle) {\n    if (!this.rsi.isReady) return;\n\n    const rsiValue = this.rsi.result;\n\n    if (rsiValue < this.settings.oversold) {\n      this.advice('long');\n    } else if (rsiValue > this.settings.overbought) {\n      this.advice('short');\n    }\n  }\n};",
+    "createdAt": "2024-01-01T00:00:00Z",
+    "updatedAt": "2024-01-01T00:00:00Z"
+  }
+]

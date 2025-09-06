@@ -1,0 +1,187 @@
+{
+  "summary": {
+    "strategy": "SMA Crossover with RSI Filter",
+    "totalTrades": 2,
+    "winningTrades": 1,
+    "losingTrades": 1,
+    "winRate": 50.0,
+    "totalReturn": 4.3,
+    "maxDrawdown": -2.1,
+    "sharpeRatio": 0.85,
+    "profitFactor": 1.2,
+    "averageWin": 6.4,
+    "averageLoss": -2.1,
+    "largestWin": 6.4,
+    "largestLoss": -2.1,
+    "initialBalance": 10000,
+    "finalBalance": 10430,
+    "totalFees": 52.15,
+    "currency": "USD",
+    "asset": "BTC",
+    "startDate": "2023-01-01T00:00:00.000Z",
+    "endDate": "2023-01-02T05:00:00.000Z",
+    "duration": "1 day, 5 hours"
+  },
+  "trades": [
+    {
+      "id": 1,
+      "type": "buy",
+      "timestamp": "2023-01-01T10:00:00.000Z",
+      "price": 51150.00,
+      "amount": 0.19544,
+      "cost": 9999.50,
+      "fee": 10.00,
+      "reason": "Bullish SMA crossover (51075.00 > 50950.00), RSI: 65.2",
+      "confidence": 0.7,
+      "portfolio": {
+        "cash": 0.50,
+        "asset": 0.19544,
+        "totalValue": 10000.00
+      }
+    },
+    {
+      "id": 2,
+      "type": "sell",
+      "timestamp": "2023-01-02T03:00:00.000Z",
+      "price": 52050.00,
+      "amount": 0.19544,
+      "cost": 10175.65,
+      "fee": 10.18,
+      "reason": "RSI overbought (72.8 > 70)",
+      "confidence": 0.8,
+      "portfolio": {
+        "cash": 10165.47,
+        "asset": 0.00000,
+        "totalValue": 10165.47
+      }
+    },
+    {
+      "id": 3,
+      "type": "buy",
+      "timestamp": "2023-01-02T05:00:00.000Z",
+      "price": 52150.00,
+      "amount": 0.19489,
+      "cost": 10164.97,
+      "fee": 10.16,
+      "reason": "Bullish SMA crossover (52100.00 > 52025.00), RSI: 58.4",
+      "confidence": 0.6,
+      "portfolio": {
+        "cash": 0.50,
+        "asset": 0.19489,
+        "totalValue": 10164.97
+      }
+    }
+  ],
+  "equity": [
+    {
+      "timestamp": "2023-01-01T00:00:00.000Z",
+      "value": 10000.00,
+      "cash": 10000.00,
+      "asset": 0.00000,
+      "assetValue": 0.00,
+      "drawdown": 0.0
+    },
+    {
+      "timestamp": "2023-01-01T10:00:00.000Z",
+      "value": 10000.00,
+      "cash": 0.50,
+      "asset": 0.19544,
+      "assetValue": 9999.50,
+      "drawdown": 0.0
+    },
+    {
+      "timestamp": "2023-01-01T15:00:00.000Z",
+      "value": 10058.68,
+      "cash": 0.50,
+      "asset": 0.19544,
+      "assetValue": 10058.18,
+      "drawdown": 0.0
+    },
+    {
+      "timestamp": "2023-01-02T00:00:00.000Z",
+      "value": 10146.36,
+      "cash": 0.50,
+      "asset": 0.19544,
+      "assetValue": 10145.86,
+      "drawdown": 0.0
+    },
+    {
+      "timestamp": "2023-01-02T03:00:00.000Z",
+      "value": 10165.47,
+      "cash": 10165.47,
+      "asset": 0.00000,
+      "assetValue": 0.00,
+      "drawdown": 0.0
+    },
+    {
+      "timestamp": "2023-01-02T05:00:00.000Z",
+      "value": 10164.97,
+      "cash": 0.50,
+      "asset": 0.19489,
+      "assetValue": 10164.47,
+      "drawdown": 0.0
+    }
+  ],
+  "indicators": {
+    "sma_10": {
+      "final": 52025.00,
+      "min": 50475.00,
+      "max": 52025.00
+    },
+    "sma_20": {
+      "final": 51575.00,
+      "min": 50575.00,
+      "max": 51575.00
+    },
+    "rsi_14": {
+      "final": 58.4,
+      "min": 35.2,
+      "max": 72.8,
+      "overboughtCount": 1,
+      "oversoldCount": 0
+    }
+  },
+  "performance": {
+    "monthlyReturns": {
+      "2023-01": 4.3
+    },
+    "volatility": 1.2,
+    "beta": 0.95,
+    "alpha": 2.1,
+    "informationRatio": 0.75,
+    "calmarRatio": 2.05,
+    "sortinoRatio": 1.15,
+    "treynorRatio": 4.53
+  },
+  "risk": {
+    "valueAtRisk95": -125.50,
+    "conditionalVaR95": -187.25,
+    "maxConsecutiveLosses": 1,
+    "maxDrawdownDuration": "0 days",
+    "downside": {
+      "deviation": 0.8,
+      "frequency": 33.3
+    }
+  },
+  "config": {
+    "initialBalance": 10000,
+    "currency": "USD",
+    "asset": "BTC",
+    "fees": {
+      "maker": 0.001,
+      "taker": 0.001
+    },
+    "strategy": {
+      "name": "sample-strategy.js",
+      "parameters": {
+        "fastSMA": 10,
+        "slowSMA": 20,
+        "rsiPeriod": 14,
+        "rsiOverbought": 70,
+        "rsiOversold": 30,
+        "stopLossPercent": 5,
+        "takeProfitPercent": 10
+      }
+    }
+  }
+}

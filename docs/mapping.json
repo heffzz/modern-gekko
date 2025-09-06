@@ -1,0 +1,183 @@
+{
+  "gekko_indicators": {
+    "native": [
+      {
+        "name": "EMA",
+        "description": "Exponential Moving Average - A type of moving average that gives more weight to recent data",
+        "parameters": ["weight"],
+        "usage": "this.addIndicator('myema', 'EMA', weight)",
+        "result_access": "this.indicators.myema.result"
+      },
+      {
+        "name": "PPO",
+        "description": "Percentage Price Oscillator - Shows relationship between two moving averages",
+        "parameters": ["short", "long", "signal"],
+        "usage": "this.addIndicator('myppo', 'PPO', settings)",
+        "result_access": "this.indicators.myppo.result"
+      },
+      {
+        "name": "CCI",
+        "description": "Commodity Channel Index - Momentum indicator for overbought/oversold conditions",
+        "parameters": ["constant"],
+        "usage": "this.addIndicator('mycci', 'CCI', settings)",
+        "result_access": "this.indicators.mycci.result"
+      },
+      {
+        "name": "DEMA",
+        "description": "Double Exponential Moving Average - Fast-acting moving average",
+        "parameters": ["weight"],
+        "usage": "this.addIndicator('mydema', 'DEMA', weight)",
+        "result_access": "this.indicators.mydema.result"
+      },
+      {
+        "name": "LRC",
+        "description": "Linear Regression Channel - Plots line that best fits prices over time period",
+        "parameters": ["depth"],
+        "usage": "this.addIndicator('mylrc', 'LRC', settings)",
+        "result_access": "this.indicators.mylrc.result"
+      },
+      {
+        "name": "MACD",
+        "description": "Moving Average Convergence Divergence - Trend-following momentum indicator",
+        "parameters": ["short", "long", "signal"],
+        "usage": "this.addIndicator('mymacd', 'MACD', settings)",
+        "result_access": "this.indicators.mymacd.result"
+      },
+      {
+        "name": "RSI",
+        "description": "Relative Strength Index - Measures speed and change of price movements",
+        "parameters": ["interval"],
+        "usage": "this.addIndicator('myrsi', 'RSI', settings)",
+        "result_access": "this.indicators.myrsi.result"
+      },
+      {
+        "name": "SMA",
+        "description": "Simple Moving Average - Arithmetic moving average",
+        "parameters": ["optInTimePeriod"],
+        "usage": "this.addIndicator('mysma', 'SMA', settings)",
+        "result_access": "this.indicators.mysma.result"
+      },
+      {
+        "name": "TSI",
+        "description": "True Strength Index - Momentum indicator with moving averages",
+        "parameters": ["long", "short", "signal"],
+        "usage": "this.addIndicator('mytsi', 'TSI', settings)",
+        "result_access": "this.indicators.mytsi.result"
+      },
+      {
+        "name": "UO",
+        "description": "Ultimate Oscillator - Uses weighted average of three time periods",
+        "parameters": ["first", "second", "third"],
+        "usage": "this.addIndicator('myuo', 'UO', settings)",
+        "result_access": "this.indicators.myuo.result"
+      }
+    ],
+    "talib": [
+      "ACCBANDS", "AD", "ADOSC", "ADX", "ADXR", "APO", "AROON", "AROONOSC", "ATR", "AVGPRICE",
+      "BBANDS", "BOP", "CCI", "CMO", "DEMA", "DX", "EMA", "HT_DCPERIOD", "HT_DCPHASE", "HT_PHASOR",
+      "HT_SINE", "HT_TRENDLINE", "HT_TRENDMODE", "IMI", "KAMA", "LINEARREG", "LINEARREG_ANGLE",
+      "LINEARREG_INTERCEPT", "LINEARREG_SLOPE", "MA", "MACD", "MACDEXT", "MACDFIX", "MAMA", "MAVP",
+      "MAX", "MAXINDEX", "MEDPRICE", "MFI", "MIDPOINT", "MIDPRICE", "MIN", "MININDEX", "MINMAX",
+      "MINMAXINDEX", "MINUS_DI", "MINUS_DM", "MOM", "NATR", "OBV", "PLUS_DI", "PLUS_DM", "PPO",
+      "ROC", "ROCP", "ROCR", "ROCR100", "RSI", "SAR", "SAREXT", "SMA", "STDDEV", "STOCH", "STOCHF",
+      "STOCHRSI", "T3", "TEMA", "TRANGE", "TRIMA", "TRIX", "TSF", "TYPPRICE", "ULTOSC", "VARIANCE",
+      "WCLPRICE", "WILLR", "WMA"
+    ],
+    "tulip": [
+      "AD", "ADOSC", "ADX", "ADXR", "AO", "APO", "AROON", "AROONOSC", "ATR", "AVGPRICE", "BBANDS",
+      "BOP", "CCI", "CMO", "CVI", "DEMA", "DI", "DM", "DPO", "DX", "EMA", "EMV", "FISHER", "FOSC",
+      "HMA", "KAMA", "KVO", "LINREG", "LINREGINTERCEPT", "LINREGSLOPE", "MARKETFI", "MASS",
+      "MEDPRICE", "MFI", "MSW", "NATR", "NVI", "OBV", "PPO", "PSAR", "PVI", "QSTICK", "ROC", "ROCR",
+      "RSI", "SMA", "STOCH", "SUM", "TEMA", "TR", "TRIMA", "TRIX", "TSF", "TYPPRICE", "ULTOSC",
+      "VHF", "VIDYA", "VOLATILITY", "VOSC", "VWMA", "WAD", "WCPRICE", "WILDERS", "WILLR", "WMA",
+      "ZLEMA"
+    ]
+  },
+  "strategy_lifecycle": {
+    "functions": {
+      "init": {
+        "description": "Executed when strategy starts. Initialize indicators and state.",
+        "usage": "this.addIndicator('name', 'type', parameters)",
+        "example": "this.requiredHistory = 5; this.addIndicator('myema', 'EMA', 10);"
+      },
+      "update": {
+        "description": "Runs on every new candle. Access current candle data.",
+        "parameters": ["candle"],
+        "candle_properties": ["close", "high", "low", "open", "volume", "trades", "start"]
+      },
+      "log": {
+        "description": "Executed on new candle when debug flag is on. Used for logging.",
+        "usage": "console.log('Current price:', this.candle.close)"
+      },
+      "check": {
+        "description": "Runs after warmup period. Main logic for buy/sell decisions.",
+        "advice_usage": "this.advice('long') or this.advice('short')",
+        "advanced_advice": "this.advice({direction: 'long', trigger: {type: 'trailingStop', trailPercentage: 5}})"
+      },
+      "end": {
+        "description": "Optional. Executed after backtest completion. Not used in live trading.",
+        "usage": "Cleanup or final calculations"
+      }
+    },
+    "indicator_usage": {
+      "native": "this.addIndicator('name', 'type', parameters)",
+      "talib": "this.addTalibIndicator('name', 'type', parameters)",
+      "tulip": "this.addTulipIndicator('name', 'type', parameters)"
+    },
+    "result_access": {
+      "native": "this.indicators.name.result",
+      "talib": "this.talibIndicators.name.result",
+      "tulip": "this.tulipIndicators.name.result"
+    }
+  },
+  "sample_strategies": [
+    {
+      "name": "MACD",
+      "description": "Moving Average Convergence Divergence strategy",
+      "indicators": ["MACD"],
+      "logic": "Buy when MACD line crosses above signal line, sell when below"
+    },
+    {
+      "name": "RSI Bull and Bear",
+      "description": "RSI-based strategy with different thresholds for bull/bear markets",
+      "indicators": ["RSI", "SMA"],
+      "logic": "Different RSI thresholds based on market trend"
+    },
+    {
+      "name": "Bollinger Bands",
+      "description": "Mean reversion strategy using Bollinger Bands",
+      "indicators": ["BBANDS", "SMA"],
+      "logic": "Buy at lower band, sell at upper band"
+    },
+    {
+      "name": "EMA Crossover",
+      "description": "Simple moving average crossover strategy",
+      "indicators": ["EMA"],
+      "logic": "Buy when fast EMA crosses above slow EMA"
+    }
+  ],
+  "implementation_notes": {
+    "frontend_integration": {
+      "api_endpoints": [
+        "GET /api/indicators - List all available indicators",
+        "GET /api/indicators/:name/preview - Preview indicator with sample data",
+        "POST /api/strategies/validate - Validate strategy code",
+        "POST /api/strategies/backtest - Run backtest with strategy",
+        "GET /api/strategies/templates - Get strategy templates"
+      ],
+      "websocket_events": [
+        "candle_update - Real-time candle data",
+        "indicator_update - Real-time indicator values",
+        "trade_signal - Buy/sell signals",
+        "portfolio_update - Portfolio value changes"
+      ]
+    },
+    "ui_components": [
+      "IndicatorLibrary - Browse and configure indicators",
+      "StrategyEditor - Monaco editor with Gekko syntax highlighting",
+      "BacktestResults - Equity curve and trade visualization",
+      "ChartComponent - Candlestick chart with indicator overlays",
+      "ParameterSweep - Grid search for strategy optimization"
+    ]
+  }
+}
