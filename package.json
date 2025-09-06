@@ -5,7 +5,7 @@
   "main": "src/server.js",
   "type": "module",
   "engines": {
-    "node": ">=18.0.0"
+    "node": "20.x"
   },
   "scripts": {
     "start": "node src/server.js",
@@ -22,7 +22,7 @@
     "docker:build": "docker build -t modern-gekko .",
     "docker:run": "docker run -p 3000:3000 modern-gekko",
     "docker:compose": "docker-compose up --build",
-    "postinstall": "cd web && npm install"
+
   },
   "keywords": [
     "trading",
