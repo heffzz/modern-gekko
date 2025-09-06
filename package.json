@@ -21,7 +21,7 @@
     "lint:check": "eslint src/ test/ --ext .js && cd web && npm run lint",
     "docker:build": "docker build -t modern-gekko .",
     "docker:run": "docker run -p 3000:3000 modern-gekko",
-    "docker:compose": "docker-compose up --build",
+    "docker:compose": "docker-compose up --build"
 
   },
   "keywords": [
