@@ -73,6 +73,15 @@ export interface Strategy {
   config: StrategyConfig
   createdAt: Date
   updatedAt: Date
+  category?: string
+  tags?: string[]
+  isActive?: boolean
+  hasErrors?: boolean
+  lastBacktestResult?: {
+    totalReturn: number
+    winRate: number
+    maxDrawdown: number
+  }
 }
 
 // Indicator Types

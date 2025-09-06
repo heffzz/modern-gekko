@@ -4,7 +4,7 @@ import { useNotificationStore } from '@/stores/notifications'
 
 const notificationStore = useNotificationStore()
 
-const strategies = ref([])
+const strategies = ref<any[]>([])
 const selectedStrategy = ref(null)
 const isLoading = ref(false)
 
@@ -25,7 +25,7 @@ const loadStrategies = async () => {
       }
     ]
   } catch (error) {
-    notificationStore.addNotification({
+    notificationStore.add({
       type: 'error',
       title: 'Error',
       message: 'Failed to load strategies'

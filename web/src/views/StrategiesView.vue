@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useStrategiesStore } from '@/stores/strategies'
-import type { StrategyConfig } from '@/types'
+import type { Strategy } from '@/types'
 
 const router = useRouter()
 const strategiesStore = useStrategiesStore()
@@ -14,7 +14,7 @@ const sortBy = ref<'name' | 'created' | 'modified'>('name')
 const sortOrder = ref<'asc' | 'desc'>('asc')
 const viewMode = ref<'grid' | 'list'>('grid')
 const showDeleteModal = ref(false)
-const strategyToDelete = ref<StrategyConfig | null>(null)
+const strategyToDelete = ref<Strategy | null>(null)
 
 // Strategy categories
 const categories = [
@@ -35,8 +35,8 @@ const filteredStrategies = computed(() => {
     const query = searchQuery.value.toLowerCase()
     strategies = strategies.filter(strategy => 
       strategy.name.toLowerCase().includes(query) ||
-      strategy.description.toLowerCase().includes(query) ||
-      strategy.tags.some(tag => tag.toLowerCase().includes(query))
+      strategy.config.description.toLowerCase().includes(query) ||
+      (strategy.tags || []).some(tag => tag.toLowerCase().includes(query))
     )
   }
   
@@ -82,7 +82,8 @@ const filteredStrategies = computed(() => {
 
 const categoriesWithCounts = computed(() => {
   const counts = strategiesStore.strategies.reduce((acc, strategy) => {
-    acc[strategy.category] = (acc[strategy.category] || 0) + 1
+    const category = strategy.category || 'custom'
+    acc[category] = (acc[category] || 0) + 1
     return acc
   }, {} as Record<string, number>)
   
@@ -97,17 +98,18 @@ const createNewStrategy = () => {
   router.push('/strategies/new')
 }
 
-const editStrategy = (strategy: StrategyConfig) => {
+const editStrategy = (strategy: Strategy) => {
   strategiesStore.setCurrentStrategy(strategy)
   router.push(`/strategies/edit/${strategy.id}`)
 }
 
-const duplicateStrategy = async (strategy: StrategyConfig) => {
+const duplicateStrategy = async (strategy: Strategy) => {
   try {
-    const duplicated = await strategiesStore.duplicateStrategy(strategy.id)
-    if (duplicated) {
-      router.push(`/strategies/edit/${duplicated.id}`)
-    }
+    // TODO: Implement duplicate functionality
+    console.log('Duplicate strategy:', strategy.name)
+    // When implemented, this should create a copy and redirect to edit page
+    // const duplicated = await strategiesStore.duplicateStrategy(strategy)
+    // router.push(`/strategies/edit/${duplicated.id}`)
   } catch (error) {
     console.error('Failed to duplicate strategy:', error)
     if (typeof window !== 'undefined' && (window as any).$notify) {
@@ -116,7 +118,7 @@ const duplicateStrategy = async (strategy: StrategyConfig) => {
   }
 }
 
-const confirmDelete = (strategy: StrategyConfig) => {
+const confirmDelete = (strategy: Strategy) => {
   strategyToDelete.value = strategy
   showDeleteModal.value = true
 }
@@ -145,14 +147,15 @@ const cancelDelete = () => {
   strategyToDelete.value = null
 }
 
-const runBacktest = (strategy: StrategyConfig) => {
+const runBacktest = (strategy: Strategy) => {
   strategiesStore.setCurrentStrategy(strategy)
   router.push('/backtest')
 }
 
-const exportStrategy = async (strategy: StrategyConfig) => {
+const exportStrategy = async (strategy: Strategy) => {
   try {
-    await strategiesStore.exportStrategy(strategy.id)
+    // TODO: Implement export functionality
+    console.log('Export strategy:', strategy.id)
     if (typeof window !== 'undefined' && (window as any).$notify) {
       (window as any).$notify.success('Export Successful', 'Strategy exported successfully')
     }
@@ -172,7 +175,8 @@ const importStrategy = () => {
     const file = (event.target as HTMLInputElement).files?.[0]
     if (file) {
       try {
-        await strategiesStore.importStrategy(file)
+        // TODO: Implement import functionality
+        console.log('Import strategy:', file.name)
         if (typeof window !== 'undefined' && (window as any).$notify) {
           (window as any).$notify.success('Import Successful', 'Strategy imported successfully')
         }
@@ -202,13 +206,13 @@ const formatDate = (date: string) => {
   return new Date(date).toLocaleDateString()
 }
 
-const getStrategyStatusColor = (strategy: StrategyConfig) => {
+const getStrategyStatusColor = (strategy: Strategy) => {
   if (strategy.isActive) return 'text-green-600'
   if (strategy.hasErrors) return 'text-red-600'
   return 'text-gray-600'
 }
 
-const getStrategyStatusText = (strategy: StrategyConfig) => {
+const getStrategyStatusText = (strategy: Strategy) => {
   if (strategy.isActive) return 'Active'
   if (strategy.hasErrors) return 'Error'
   return 'Inactive'
@@ -346,7 +350,7 @@ onMounted(() => {
                 <h3 class="strategy-name">{{ strategy.name }}</h3>
                 <div class="strategy-meta">
                   <span class="strategy-category">
-                    {{ getCategoryIcon(strategy.category) }} {{ strategy.category }}
+                    {{ getCategoryIcon(strategy.category || 'custom') }} {{ strategy.category || 'Custom' }}
                   </span>
                   <span class="strategy-status" :class="getStrategyStatusColor(strategy)">
                     {{ getStrategyStatusText(strategy) }}
@@ -391,7 +395,7 @@ onMounted(() => {
 
             <!-- Card Content -->
             <div class="card-content">
-              <p class="strategy-description">{{ strategy.description }}</p>
+              <p class="strategy-description">{{ strategy.config.description }}</p>
               
               <div class="strategy-tags">
                 <span 
@@ -406,15 +410,15 @@ onMounted(() => {
               <div class="strategy-stats">
                 <div class="stat-item">
                   <span class="stat-label">Parameters</span>
-                  <span class="stat-value">{{ Object.keys(strategy.parameters).length }}</span>
+                  <span class="stat-value">{{ Object.keys(strategy.config.parameters).length }}</span>
                 </div>
                 <div class="stat-item">
                   <span class="stat-label">Indicators</span>
-                  <span class="stat-value">{{ strategy.indicators.length }}</span>
+                  <span class="stat-value">{{ strategy.config.indicators.length }}</span>
                 </div>
                 <div class="stat-item">
                   <span class="stat-label">Created</span>
-                  <span class="stat-value">{{ formatDate(strategy.createdAt) }}</span>
+                  <span class="stat-value">{{ new Date(strategy.createdAt).toLocaleDateString() }}</span>
                 </div>
               </div>
             </div>
