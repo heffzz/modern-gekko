@@ -51,7 +51,7 @@ const recentActivity = computed(() => {
     })
   }
   
-  return activities.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()).slice(0, 5)
+  return activities.sort((a: any, b: any) => b.timestamp.getTime() - a.timestamp.getTime()).slice(0, 5)
 })
 
 // Quick actions
@@ -802,6 +802,146 @@ onUnmounted(() => {
   
   .status-grid {
     max-height: 250px;
+  }
+}
+
+@media (max-width: 640px) {
+  .dashboard-view {
+    padding: 0.75rem;
+  }
+  
+  .dashboard-header {
+    padding: 1rem;
+    gap: 1rem;
+  }
+  
+  .dashboard-title {
+    font-size: 1.75rem;
+  }
+  
+  .dashboard-subtitle {
+    font-size: 0.875rem;
+  }
+  
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  
+  .stat-card {
+    padding: 1rem;
+    min-height: 80px;
+  }
+  
+  .stat-value {
+    font-size: 1.5rem;
+  }
+  
+  .content-section {
+    padding: 1rem;
+    min-height: 250px;
+    max-height: 350px;
+  }
+  
+  .section-title {
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .quick-action-card {
+    padding: 1rem;
+    min-height: 100px;
+  }
+  
+  .refresh-button {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+  }
+  
+  .last-update {
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-view {
+    padding: 0.5rem;
+  }
+  
+  .dashboard-header {
+    padding: 0.75rem;
+  }
+  
+  .dashboard-title {
+    font-size: 1.5rem;
+  }
+  
+  .stats-grid {
+    gap: 0.5rem;
+  }
+  
+  .stat-card {
+    padding: 0.75rem;
+    min-height: 70px;
+  }
+  
+  .stat-icon {
+    font-size: 1.25rem;
+  }
+  
+  .stat-value {
+    font-size: 1.25rem;
+  }
+  
+  .stat-label {
+    font-size: 0.75rem;
+  }
+  
+  .content-section {
+    padding: 0.75rem;
+    min-height: 200px;
+    max-height: 300px;
+  }
+  
+  .header-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: stretch;
+  }
+  
+  .refresh-button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Touch improvements */
+@media (hover: none) and (pointer: coarse) {
+  .stat-card {
+    touch-action: manipulation;
+    transition: transform 0.1s ease;
+  }
+  
+  .stat-card:active {
+    transform: scale(0.98);
+  }
+  
+  .quick-action-card {
+    touch-action: manipulation;
+    transition: transform 0.1s ease;
+  }
+  
+  .quick-action-card:active {
+    transform: scale(0.98);
+  }
+  
+  .refresh-button {
+    touch-action: manipulation;
+    min-height: 44px;
+  }
+  
+  .refresh-button:active {
+    transform: scale(0.98);
   }
 }
 

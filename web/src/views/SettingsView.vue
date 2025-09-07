@@ -3,7 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useMainStore } from '@/stores/main'
 import type { UserSettings, ExchangeConfig, NotificationSettings } from '@/types'
 
-const mainStore = useMainStore()
+const _mainStore = useMainStore()
 
 // Settings categories
 const activeTab = ref('general')
@@ -23,6 +23,7 @@ const generalSettings = ref({
   currency: 'USD',
   dateFormat: 'MM/DD/YYYY',
   timeFormat: '24h',
+  numberFormat: 'en-US',
   autoSave: true,
   confirmActions: true,
   showTooltips: true,
@@ -39,7 +40,7 @@ const exchangeConfigs = ref<ExchangeConfig[]>([
     apiSecret: '',
     sandbox: true,
     testConnection: false,
-    lastConnected: null,
+    lastConnected: undefined,
     status: 'disconnected',
     supportedFeatures: ['spot', 'futures', 'margin'],
     rateLimits: {
@@ -57,7 +58,7 @@ const exchangeConfigs = ref<ExchangeConfig[]>([
     passphrase: '',
     sandbox: true,
     testConnection: false,
-    lastConnected: null,
+    lastConnected: undefined,
     status: 'disconnected',
     supportedFeatures: ['spot'],
     rateLimits: {
@@ -74,7 +75,7 @@ const exchangeConfigs = ref<ExchangeConfig[]>([
     apiSecret: '',
     sandbox: true,
     testConnection: false,
-    lastConnected: null,
+    lastConnected: undefined,
     status: 'disconnected',
     supportedFeatures: ['spot', 'futures'],
     rateLimits: {
@@ -95,6 +96,20 @@ const notificationSettings = ref<NotificationSettings>({
     dailyReports: true,
     weeklyReports: false
   },
+  push: {
+    enabled: false,
+    trades: true,
+    errors: true,
+    warnings: true
+  },
+  sound: {
+    enabled: true,
+    trades: false,
+    errors: true,
+    warnings: false
+  },
+  trades: true,
+  alerts: true,
   webhook: {
     enabled: false,
     url: '',
@@ -201,10 +216,6 @@ const logLevelOptions = [
 ]
 
 // Computed properties
-const hasUnsavedChanges = computed(() => {
-  // In a real app, this would compare current settings with saved settings
-  return false
-})
 
 const connectedExchanges = computed(() => {
   return exchangeConfigs.value.filter(ex => ex.status === 'connected').length
@@ -223,9 +234,21 @@ const saveSettings = async () => {
     await new Promise(resolve => setTimeout(resolve, 1000))
     
     const settings: UserSettings = {
-      general: generalSettings.value,
-      exchanges: exchangeConfigs.value,
+      theme: {
+        mode: generalSettings.value.theme === 'dark' ? 'dark' : 'light',
+        primary: '#3b82f6',
+        background: '#ffffff',
+        surface: '#f8fafc',
+        text: '#1e293b'
+      },
       notifications: notificationSettings.value,
+      trading: {
+        defaultAmount: 100,
+        riskPercentage: 2,
+        autoTrade: false
+      },
+      exchanges: exchangeConfigs.value,
+      general: generalSettings.value,
       security: securitySettings.value,
       advanced: advancedSettings.value
     }
@@ -233,16 +256,16 @@ const saveSettings = async () => {
     // In a real app, this would save to the backend
     localStorage.setItem('gekko-settings', JSON.stringify(settings))
     
-    if (typeof window !== 'undefined' && (window as any).$notify) {
-      (window as any).$notify.success('Settings Saved', 'Your settings have been saved successfully')
-    }
+    if (typeof window !== 'undefined' && window.$notify) {
+        window.$notify.success('Settings Saved', 'Your settings have been saved successfully')
+      }
     
   } catch (error) {
     console.error('Failed to save settings:', error)
     
-    if (typeof window !== 'undefined' && (window as any).$notify) {
-      (window as any).$notify.error('Save Failed', 'Could not save settings')
-    }
+    if (typeof window !== 'undefined' && window.$notify) {
+        window.$notify.error('Save Failed', 'Could not save settings')
+      }
   } finally {
     saving.value = false
   }
@@ -267,8 +290,8 @@ const loadSettings = async () => {
 
 const testExchangeConnection = async (exchange: ExchangeConfig) => {
   if (!exchange.apiKey || !exchange.apiSecret) {
-    if (typeof window !== 'undefined' && (window as any).$notify) {
-      (window as any).$notify.error('Missing Credentials', 'Please enter API key and secret')
+    if (typeof window !== 'undefined' && window.$notify) {
+      window.$notify.error('Missing Credentials', 'Please enter API key and secret')
     }
     return
   }
@@ -287,15 +310,15 @@ const testExchangeConnection = async (exchange: ExchangeConfig) => {
       exchange.lastConnected = new Date().toISOString()
       exchange.testConnection = true
       
-      if (typeof window !== 'undefined' && (window as any).$notify) {
-        (window as any).$notify.success('Connection Successful', `Connected to ${exchange.name}`)
+      if (typeof window !== 'undefined' && window.$notify) {
+        window.$notify.success('Connection Successful', `Connected to ${exchange.name}`)
       }
     } else {
       exchange.status = 'error'
       exchange.testConnection = false
       
-      if (typeof window !== 'undefined' && (window as any).$notify) {
-        (window as any).$notify.error('Connection Failed', `Could not connect to ${exchange.name}`)
+      if (typeof window !== 'undefined' && window.$notify) {
+        window.$notify.error('Connection Failed', `Could not connect to ${exchange.name}`)
       }
     }
     
@@ -304,8 +327,8 @@ const testExchangeConnection = async (exchange: ExchangeConfig) => {
     exchange.status = 'error'
     exchange.testConnection = false
     
-    if (typeof window !== 'undefined' && (window as any).$notify) {
-      (window as any).$notify.error('Test Failed', 'Connection test failed')
+    if (typeof window !== 'undefined' && window.$notify) {
+      window.$notify.error('Test Failed', 'Connection test failed')
     }
   } finally {
     testing.value = null
@@ -327,8 +350,8 @@ const saveApiKeys = () => {
     // Keys are already bound to the exchange object
     closeApiKeyModal()
     
-    if (typeof window !== 'undefined' && (window as any).$notify) {
-      (window as any).$notify.success('API Keys Saved', 'Exchange credentials have been updated')
+    if (typeof window !== 'undefined' && window.$notify) {
+      window.$notify.success('API Keys Saved', 'Exchange credentials have been updated')
     }
   }
 }
@@ -348,6 +371,7 @@ const confirmReset = () => {
           timezone: 'UTC',
           currency: 'USD',
           dateFormat: 'MM/DD/YYYY',
+          numberFormat: 'en-US',
           timeFormat: '24h',
           autoSave: true,
           confirmActions: true,
@@ -365,6 +389,20 @@ const confirmReset = () => {
             dailyReports: true,
             weeklyReports: false
           },
+          push: {
+            enabled: false,
+            trades: true,
+            errors: true,
+            warnings: true
+          },
+          sound: {
+            enabled: true,
+            trades: true,
+            errors: true,
+            warnings: true
+          },
+          trades: true,
+          alerts: true,
           webhook: {
             enabled: false,
             url: '',
@@ -417,8 +455,8 @@ const confirmReset = () => {
         break
     }
     
-    if (typeof window !== 'undefined' && (window as any).$notify) {
-      (window as any).$notify.success('Settings Reset', `${resetCategory.value} settings have been reset to defaults`)
+    if (typeof window !== 'undefined' && window.$notify) {
+      window.$notify.success('Settings Reset', `${resetCategory.value} settings have been reset to defaults`)
     }
   }
   
@@ -449,8 +487,8 @@ const exportSettings = () => {
   document.body.removeChild(a)
   URL.revokeObjectURL(url)
   
-  if (typeof window !== 'undefined' && (window as any).$notify) {
-    (window as any).$notify.success('Settings Exported', 'Settings have been downloaded')
+  if (typeof window !== 'undefined' && window.$notify) {
+    window.$notify.success('Settings Exported', 'Settings have been downloaded')
   }
 }
 
@@ -468,22 +506,22 @@ const importSettings = (event: Event) => {
       if (settings.security) securitySettings.value = { ...securitySettings.value, ...settings.security }
       if (settings.advanced) advancedSettings.value = { ...advancedSettings.value, ...settings.advanced }
       
-      if (typeof window !== 'undefined' && (window as any).$notify) {
-        (window as any).$notify.success('Settings Imported', 'Settings have been imported successfully')
+      if (typeof window !== 'undefined' && window.$notify) {
+        window.$notify.success('Settings Imported', 'Settings have been imported successfully')
       }
       
     } catch (error) {
       console.error('Failed to import settings:', error)
       
-      if (typeof window !== 'undefined' && (window as any).$notify) {
-        (window as any).$notify.error('Import Failed', 'Invalid settings file')
+      if (typeof window !== 'undefined' && window.$notify) {
+        window.$notify.error('Import Failed', 'Invalid settings file')
       }
     }
   }
   reader.readAsText(file)
 }
 
-const getStatusColor = (status: string) => {
+const getStatusColor = (status: string | undefined) => {
   switch (status) {
     case 'connected': return 'text-green-600'
     case 'disconnected': return 'text-gray-600'
@@ -493,7 +531,7 @@ const getStatusColor = (status: string) => {
   }
 }
 
-const getStatusIcon = (status: string) => {
+const getStatusIcon = (status: string | undefined) => {
   switch (status) {
     case 'connected': return '✅'
     case 'disconnected': return '⚪'
@@ -503,7 +541,7 @@ const getStatusIcon = (status: string) => {
   }
 }
 
-const formatLastConnected = (timestamp: string | null) => {
+const formatLastConnected = (timestamp: string | null | undefined) => {
   if (!timestamp) return 'Never'
   return new Date(timestamp).toLocaleString()
 }

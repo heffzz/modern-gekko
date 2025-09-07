@@ -134,7 +134,7 @@ describe('Advanced Indicators Tests', () => {
       const dema = new DEMA(14);
 
       sampleCandles.forEach(candle => {
-        dema.update(candle.close);
+        dema.update(candle);
       });
 
       const result = dema.getResult();
@@ -146,7 +146,7 @@ describe('Advanced Indicators Tests', () => {
       const dema = new DEMA(14);
 
       sampleCandles.forEach(candle => {
-        dema.update(candle.close);
+        dema.update(candle);
       });
 
       const signal = dema.getSignal(50);

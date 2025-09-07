@@ -238,6 +238,34 @@ class CCI {
       reason: 'CCI between -100 and +100 - no clear trend'
     };
   }
+
+  // Metodo generale per ottenere segnali
+  getSignal() {
+    const cci = this.getResult();
+    if (cci === null) return null;
+
+    let zone, momentum;
+
+    if (cci > 100) {
+      zone = 'overbought';
+      momentum = 'strong_bullish';
+    } else if (cci < -100) {
+      zone = 'oversold';
+      momentum = 'strong_bearish';
+    } else if (cci > 0) {
+      zone = 'bullish';
+      momentum = 'bullish';
+    } else {
+      zone = 'bearish';
+      momentum = 'bearish';
+    }
+
+    return {
+      zone,
+      momentum,
+      value: cci
+    };
+  }
 }
 
-module.exports = CCI;
+export default CCI;

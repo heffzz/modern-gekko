@@ -35,7 +35,7 @@ const filteredStrategies = computed(() => {
     const query = searchQuery.value.toLowerCase()
     strategies = strategies.filter(strategy => 
       strategy.name.toLowerCase().includes(query) ||
-      strategy.config.description.toLowerCase().includes(query) ||
+      strategy.config?.description?.toLowerCase().includes(query) ||
       (strategy.tags || []).some(tag => tag.toLowerCase().includes(query))
     )
   }
@@ -48,7 +48,7 @@ const filteredStrategies = computed(() => {
   }
   
   // Sort strategies
-  strategies.sort((a, b) => {
+  strategies.sort((a: Strategy, b: Strategy) => {
     let aValue: string | number
     let bValue: string | number
     
@@ -62,8 +62,8 @@ const filteredStrategies = computed(() => {
         bValue = new Date(b.createdAt).getTime()
         break
       case 'modified':
-        aValue = new Date(a.updatedAt).getTime()
-        bValue = new Date(b.updatedAt).getTime()
+        aValue = new Date(a.updatedAt || a.createdAt).getTime()
+        bValue = new Date(b.updatedAt || b.createdAt).getTime()
         break
       default:
         aValue = a.name.toLowerCase()
@@ -112,9 +112,9 @@ const duplicateStrategy = async (strategy: Strategy) => {
     // router.push(`/strategies/edit/${duplicated.id}`)
   } catch (error) {
     console.error('Failed to duplicate strategy:', error)
-    if (typeof window !== 'undefined' && (window as any).$notify) {
-      (window as any).$notify.error('Duplication Failed', 'Failed to duplicate strategy')
-    }
+    if (typeof window !== 'undefined' && window.$notify) {
+        window.$notify.error('Duplication Failed', 'Failed to duplicate strategy')
+      }
   }
 }
 
@@ -131,14 +131,14 @@ const deleteStrategy = async () => {
     showDeleteModal.value = false
     strategyToDelete.value = null
     
-    if (typeof window !== 'undefined' && (window as any).$notify) {
-      (window as any).$notify.success('Strategy Deleted', 'Strategy has been successfully deleted')
-    }
+    if (typeof window !== 'undefined' && window.$notify) {
+        window.$notify.success('Strategy Deleted', 'Strategy has been successfully deleted')
+      }
   } catch (error) {
     console.error('Failed to delete strategy:', error)
-    if (typeof window !== 'undefined' && (window as any).$notify) {
-      (window as any).$notify.error('Deletion Failed', 'Failed to delete strategy')
-    }
+    if (typeof window !== 'undefined' && window.$notify) {
+        window.$notify.error('Deletion Failed', 'Failed to delete strategy')
+      }
   }
 }
 
@@ -156,14 +156,14 @@ const exportStrategy = async (strategy: Strategy) => {
   try {
     // TODO: Implement export functionality
     console.log('Export strategy:', strategy.id)
-    if (typeof window !== 'undefined' && (window as any).$notify) {
-      (window as any).$notify.success('Export Successful', 'Strategy exported successfully')
-    }
+    if (typeof window !== 'undefined' && window.$notify) {
+        window.$notify.success('Export Successful', 'Strategy exported successfully')
+      }
   } catch (error) {
     console.error('Failed to export strategy:', error)
-    if (typeof window !== 'undefined' && (window as any).$notify) {
-      (window as any).$notify.error('Export Failed', 'Failed to export strategy')
-    }
+    if (typeof window !== 'undefined' && window.$notify) {
+        window.$notify.error('Export Failed', 'Failed to export strategy')
+      }
   }
 }
 
@@ -177,13 +177,13 @@ const importStrategy = () => {
       try {
         // TODO: Implement import functionality
         console.log('Import strategy:', file.name)
-        if (typeof window !== 'undefined' && (window as any).$notify) {
-          (window as any).$notify.success('Import Successful', 'Strategy imported successfully')
+        if (typeof window !== 'undefined' && window.$notify) {
+          window.$notify.success('Import Successful', 'Strategy imported successfully')
         }
       } catch (error) {
         console.error('Failed to import strategy:', error)
-        if (typeof window !== 'undefined' && (window as any).$notify) {
-          (window as any).$notify.error('Import Failed', 'Failed to import strategy')
+        if (typeof window !== 'undefined' && window.$notify) {
+          window.$notify.error('Import Failed', 'Failed to import strategy')
         }
       }
     }
@@ -200,10 +200,6 @@ const getCategoryIcon = (category: string) => {
     case 'custom': return '🛠️'
     default: return '📊'
   }
-}
-
-const formatDate = (date: string) => {
-  return new Date(date).toLocaleDateString()
 }
 
 const getStrategyStatusColor = (strategy: Strategy) => {
@@ -395,7 +391,7 @@ onMounted(() => {
 
             <!-- Card Content -->
             <div class="card-content">
-              <p class="strategy-description">{{ strategy.config.description }}</p>
+              <p class="strategy-description">{{ strategy.config?.description }}</p>
               
               <div class="strategy-tags">
                 <span 
@@ -410,11 +406,11 @@ onMounted(() => {
               <div class="strategy-stats">
                 <div class="stat-item">
                   <span class="stat-label">Parameters</span>
-                  <span class="stat-value">{{ Object.keys(strategy.config.parameters).length }}</span>
+                  <span class="stat-value">{{ Object.keys(strategy.config?.parameters || {}).length }}</span>
                 </div>
                 <div class="stat-item">
                   <span class="stat-label">Indicators</span>
-                  <span class="stat-value">{{ strategy.config.indicators.length }}</span>
+                  <span class="stat-value">{{ strategy.config?.indicators?.length || 0 }}</span>
                 </div>
                 <div class="stat-item">
                   <span class="stat-label">Created</span>

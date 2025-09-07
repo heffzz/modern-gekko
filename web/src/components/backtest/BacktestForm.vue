@@ -117,7 +117,7 @@
             />
             
             <div 
-              @click="$refs.fileInput?.click()"
+              @click="fileInput?.click()"
               @dragover.prevent
               @drop.prevent="handleFileDrop"
               :class="[
@@ -306,7 +306,7 @@
             >
               <option 
                 v-for="option in param.options" 
-                :key="option.value"
+                :key="String(option.value)"
                 :value="option.value"
               >
                 {{ option.label }}
@@ -502,7 +502,7 @@ import {
 import { useStrategyStore } from '@/stores/strategy'
 import { useBacktestStore } from '@/stores/backtest'
 import { useNotificationStore } from '@/stores/notifications'
-import type { StrategyBacktestRequest } from '@/types/strategy'
+
 
 // Props
 interface Props {
@@ -541,13 +541,13 @@ const form = ref({
     startDate: '',
     endDate: ''
   },
-  csvFile: null,
+  csvFile: null as File | null,
   exchange: '',
   symbol: '',
   startDate: '',
   endDate: '',
   timeframe: '1h',
-  parameters: {},
+  parameters: {} as Record<string, any>,
   portfolio: {
     initialCapital: 10000,
     tradingFee: 0.001,
@@ -647,11 +647,7 @@ const processFile = async (file: File) => {
     
   } catch (error) {
     console.error('File processing error:', error)
-    notificationStore.addNotification({
-      type: 'error',
-      title: 'File Error',
-      message: 'Failed to process CSV file'
-    })
+    notificationStore.error('File Error', 'Failed to process CSV file')
   }
 }
 
@@ -707,11 +703,7 @@ const runBacktest = async () => {
     // Validate request
     const errors = backtestStore.validateRequest(form.value)
     if (errors.length > 0) {
-      notificationStore.addNotification({
-        type: 'error',
-        title: 'Validation Error',
-        message: errors.join(', ')
-      })
+      notificationStore.error('Validation Error', errors.join(', '))
       return
     }
     
@@ -737,11 +729,7 @@ const runBacktest = async () => {
     
     emit('backtest-started', result)
     
-    notificationStore.addNotification({
-      type: 'success',
-      title: 'Backtest Started',
-      message: 'Backtest has been started successfully'
-    })
+    notificationStore.success('Backtest Started', 'Backtest has been started successfully')
     
     // Navigate to results
     router.push(`/backtest/results/${result.id}`)
@@ -749,11 +737,7 @@ const runBacktest = async () => {
   } catch (err) {
     console.error('Backtest error:', err)
     error.value = err instanceof Error ? err.message : 'Unknown error occurred'
-    notificationStore.addNotification({
-      type: 'error',
-      title: 'Backtest Failed',
-      message: error.value
-    })
+    notificationStore.error('Backtest Failed', error.value)
   } finally {
     isLoading.value = false
   }
@@ -761,11 +745,7 @@ const runBacktest = async () => {
 
 const saveAsTemplate = () => {
   // TODO: Implement template saving
-  notificationStore.addNotification({
-    type: 'info',
-    title: 'Feature Coming Soon',
-    message: 'Template saving will be available in a future update'
-  })
+  notificationStore.info('Feature Coming Soon', 'Template saving will be available in a future update')
 }
 
 const resetForm = () => {
@@ -804,7 +784,7 @@ const resetForm = () => {
 
 // Method for tests
 const validateParameters = () => {
-  const errors = []
+  const errors: string[] = []
   
   if (!selectedStrategy.value?.parameters) return errors
   

@@ -1,18 +1,47 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, defineOptions } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+
+defineOptions({
+  name: 'AppSidebar'
+})
 
 interface Props {
   collapsed?: boolean
+  isMobile?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  collapsed: false
+  collapsed: false,
+  isMobile: false
 })
 
 const emit = defineEmits<{
   toggle: []
 }>()
+
+const touchStartX = ref(0)
+const touchStartY = ref(0)
+const sidebarRef = ref<HTMLElement>()
+
+function handleTouchStart(e: TouchEvent) {
+  touchStartX.value = e.touches[0].clientX
+  touchStartY.value = e.touches[0].clientY
+}
+
+function handleTouchEnd(e: TouchEvent) {
+  if (!props.isMobile) return
+  
+  const touchEndX = e.changedTouches[0].clientX
+  const touchEndY = e.changedTouches[0].clientY
+  const deltaX = touchEndX - touchStartX.value
+  const deltaY = Math.abs(touchEndY - touchStartY.value)
+  
+  // Swipe left to close sidebar (only if horizontal swipe is dominant)
+  if (deltaX < -50 && deltaY < 100 && !props.collapsed) {
+    emit('toggle')
+  }
+}
 
 const route = useRoute()
 const router = useRouter()
@@ -76,10 +105,15 @@ const navigateTo = (path: string) => {
 
 <template>
   <aside 
+    ref="sidebarRef"
     :class="[
       'h-screen bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900 border-r border-emerald-400/30 flex flex-col transition-all duration-300 relative shadow-2xl backdrop-blur-xl shadow-emerald-500/15',
-      collapsed ? 'w-16' : 'w-72'
+      collapsed ? 'w-16' : 'w-72',
+      isMobile ? 'mobile-sidebar' : '',
+      collapsed && isMobile ? 'collapsed' : ''
     ]"
+    @touchstart="handleTouchStart"
+    @touchend="handleTouchEnd"
   >
     <!-- Logo/Brand -->
     <div class="p-10 border-b border-white/3">
@@ -107,9 +141,10 @@ const navigateTo = (path: string) => {
         :key="item.name"
         @click="navigateTo(item.path)"
         :class="[
-           'w-full max-w-sm flex items-center px-8 py-6 text-center rounded-3xl transition-all duration-700 group relative overflow-hidden mx-auto border-2 backdrop-blur-xl',
+           'w-full max-w-sm flex items-center text-center rounded-3xl transition-all duration-700 group relative overflow-hidden mx-auto border-2 backdrop-blur-xl touch-manipulation',
            'before:absolute before:inset-0 before:bg-gradient-to-br before:from-emerald-400/0 before:via-green-400/0 before:to-teal-400/0 before:transition-all before:duration-700 before:rounded-3xl',
            'hover:before:from-emerald-400/12 hover:before:via-green-400/8 hover:before:to-teal-400/12',
+           isMobile ? (collapsed ? 'px-4 py-4' : 'px-6 py-5') : 'px-8 py-6',
            isActive(item.path)
              ? 'bg-gradient-to-br from-emerald-500/40 via-green-500/35 to-teal-500/40 text-white border-emerald-300/80 shadow-2xl shadow-emerald-400/50 transform scale-[1.03] ring-2 ring-emerald-300/40'
              : 'bg-gradient-to-br from-slate-800/70 via-gray-800/60 to-slate-700/70 text-gray-200 border-gray-500/60 hover:text-white hover:bg-gradient-to-br hover:from-emerald-500/30 hover:via-green-500/25 hover:to-teal-500/30 hover:border-emerald-300/70 hover:shadow-2xl hover:shadow-emerald-400/35 hover:transform hover:scale-[1.02] hover:ring-1 hover:ring-emerald-300/30'
@@ -416,6 +451,65 @@ const navigateTo = (path: string) => {
 /* Custom gradient backgrounds */
 .bg-gradient-to-br {
   background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 50%, #581c87 100%);
+}
+
+/* Mobile-specific styles */
+.mobile-sidebar {
+  width: 280px !important;
+  max-width: 85vw;
+}
+
+.mobile-sidebar.collapsed {
+  width: 0 !important;
+  min-width: 0 !important;
+  overflow: hidden;
+}
+
+@media (max-width: 767px) {
+  .mobile-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 50;
+    height: 100vh;
+    transform: translateX(0);
+  }
+  
+  .mobile-sidebar.collapsed {
+    transform: translateX(-100%);
+  }
+  
+  /* Larger touch targets on mobile */
+  .mobile-sidebar button {
+    min-height: 60px;
+    touch-action: manipulation;
+  }
+  
+  /* Improved scrolling on mobile */
+  .mobile-sidebar nav {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+  
+  /* Reduce animations on mobile for better performance */
+  @media (prefers-reduced-motion: reduce) {
+    .mobile-sidebar * {
+      transition-duration: 0.1s !important;
+      animation-duration: 0.1s !important;
+    }
+  }
+}
+
+/* Touch-specific improvements */
+@media (hover: none) and (pointer: coarse) {
+  .mobile-sidebar button:active {
+    transform: scale(0.98);
+    transition: transform 0.1s ease;
+  }
+  
+  .mobile-sidebar .group:active {
+    background-color: rgba(16, 185, 129, 0.1);
+  }
 }
 
 /* Improved text shadows */

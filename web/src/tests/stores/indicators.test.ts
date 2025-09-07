@@ -123,7 +123,19 @@ describe('Indicators Store', () => {
     
     store.addIndicator({
       name: 'sma',
-      parameters: config.parameters
+      displayName: 'Simple Moving Average',
+      category: 'trend',
+      description: 'Simple moving average',
+      parameters: config.parameters,
+      timeComplexity: 'O(n)',
+      memoryUsage: 'Low',
+      outputType: 'line',
+      scale: 'price',
+      indicatorId: 'sma',
+      visible: true,
+      lineWidth: 2,
+      opacity: 1,
+      style: 'solid'
     })
     
     expect(store.configuredIndicators).toHaveLength(1)
@@ -302,12 +314,7 @@ describe('Indicators Store', () => {
     
     const store = useIndicatorsStore()
     
-    const mockCandles = [
-      { time: 1640995200, open: 100, high: 105, low: 95, close: 102, volume: 1000 },
-      { time: 1641081600, open: 102, high: 107, low: 98, close: 104, volume: 1200 }
-    ]
-    
-    const result = await store.previewIndicator('sma', { period: 20 }, mockCandles)
+    const result = await store.previewIndicator('sma', { period: 20 })
     
     expect(result).toEqual(mockPreview)
   })
@@ -318,10 +325,15 @@ describe('Indicators Store', () => {
     const presetData = {
       name: 'My Preset',
       description: 'Custom indicator preset',
+      category: 'custom' as const,
       indicators: [
         {
-          name: 'sma',
-          parameters: { period: 20 }
+          indicator: 'sma',
+          parameters: { period: 20 },
+          display: {
+            color: '#3b82f6',
+            visible: true
+          }
         }
       ]
     }

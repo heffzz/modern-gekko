@@ -4,8 +4,7 @@ import { useNotificationStore } from '@/stores/notifications'
 
 const notificationStore = useNotificationStore()
 
-const strategies = ref<any[]>([])
-const selectedStrategy = ref(null)
+const strategies = ref<Record<string, unknown>[]>([])
 const isLoading = ref(false)
 
 onMounted(() => {
@@ -24,7 +23,8 @@ const loadStrategies = async () => {
         created: new Date().toISOString()
       }
     ]
-  } catch (error) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  } catch (_error) {
     notificationStore.add({
       type: 'error',
       title: 'Error',

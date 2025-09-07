@@ -147,6 +147,15 @@ class ParabolicSAR {
       return null;
     }
 
+    return parseFloat(this.currentSAR.toFixed(4));
+  }
+
+  // Metodo per ottenere tutti i valori
+  getFullResult() {
+    if (!this.isInitialized) {
+      return null;
+    }
+
     return {
       sar: parseFloat(this.currentSAR.toFixed(4)),
       trend: this.currentTrend,
@@ -183,7 +192,7 @@ class ParabolicSAR {
 
   // Generate trading signals
   getSignal(currentPrice) {
-    const result = this.getResult();
+    const result = this.getFullResult();
     if (!result || !currentPrice) return null;
 
     const { sar, trend } = result;
@@ -387,4 +396,4 @@ class ParabolicSAR {
   }
 }
 
-module.exports = ParabolicSAR;
+export default ParabolicSAR;

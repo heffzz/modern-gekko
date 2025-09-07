@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useIndicatorsStore } from '@/stores/indicators'
-import type { Indicator, IndicatorConfig as IIndicatorConfig, IndicatorParameter } from '@/types'
+import type { ConfiguredIndicator, IndicatorParameter } from '@/types/indicators'
 
 interface Props {
-  modelValue: Indicator[]
+  modelValue: ConfiguredIndicator[]
   availableIndicators?: string[]
   maxIndicators?: number
   allowCustomColors?: boolean
@@ -18,11 +18,11 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<{
-  'update:modelValue': [indicators: Indicator[]]
-  'preview': [indicator: Indicator]
-  'add': [indicator: Indicator]
+  'update:modelValue': [indicators: ConfiguredIndicator[]]
+  'preview': [indicator: ConfiguredIndicator]
+  'add': [indicator: ConfiguredIndicator]
   'remove': [indicatorId: string]
-  'update': [indicator: Indicator]
+  'update': [indicator: ConfiguredIndicator]
 }>()
 
 const indicatorsStore = useIndicatorsStore()
@@ -31,25 +31,23 @@ const indicatorsStore = useIndicatorsStore()
 const selectedIndicatorType = ref('')
 const showAddDialog = ref(false)
 const showEditDialog = ref(false)
-const editingIndicator = ref<Indicator | null>(null)
-const previewIndicator = ref<Indicator | null>(null)
+const editingIndicator = ref<ConfiguredIndicator | null>(null)
+const previewIndicator = ref<ConfiguredIndicator | null>(null)
 const isLoadingPreview = ref(false)
 
 // Form state for new/edit indicator
 const indicatorForm = ref<{
   name: string
-  type: string
   parameters: Record<string, any>
   color: string
-  overlay: boolean
   visible: boolean
+  overlay: boolean
 }>({
   name: '',
-  type: '',
   parameters: {},
   color: '#3b82f6',
-  overlay: true,
-  visible: true
+  visible: true,
+  overlay: false
 })
 
 // Computed properties
@@ -57,7 +55,7 @@ const availableIndicatorTypes = computed(() => {
   if (props.availableIndicators) {
     return props.availableIndicators
   }
-  return indicatorsStore.availableIndicators.map(ind => ind.type)
+  return indicatorsStore.availableIndicators.map(ind => ind.name)
 })
 
 const selectedIndicatorConfig = computed(() => {
@@ -87,28 +85,26 @@ const openAddDialog = () => {
   showAddDialog.value = true
 }
 
-const openEditDialog = (indicator: Indicator) => {
+const openEditDialog = (indicator: ConfiguredIndicator) => {
   editingIndicator.value = indicator
   indicatorForm.value = {
     name: indicator.name,
-    type: indicator.type,
     parameters: { ...indicator.parameters },
     color: indicator.color || '#3b82f6',
-    overlay: indicator.overlay || false,
-    visible: indicator.visible !== false
+    visible: indicator.visible !== false,
+    overlay: (indicator as any).overlay || false
   }
-  selectedIndicatorType.value = indicator.type
+  selectedIndicatorType.value = indicator.indicatorId
   showEditDialog.value = true
 }
 
 const resetForm = () => {
   indicatorForm.value = {
     name: '',
-    type: '',
     parameters: {},
     color: '#3b82f6',
-    overlay: true,
-    visible: true
+    visible: true,
+    overlay: false
   }
   selectedIndicatorType.value = ''
   editingIndicator.value = null
@@ -126,7 +122,7 @@ const generateIndicatorName = (type: string, parameters: Record<string, any>): s
   if (!config) return type
   
   const paramStr = Object.entries(parameters)
-    .filter(([key, value]) => value !== null && value !== undefined)
+    .filter(([_key, value]) => value !== null && value !== undefined)
     .map(([key, value]) => `${key}=${value}`)
     .join(',')
   
@@ -155,15 +151,21 @@ const addIndicator = async () => {
   if (!validateForm()) return
   
   const config = selectedIndicatorConfig.value!
-  const newIndicator: Indicator = {
+  const newIndicator: ConfiguredIndicator = {
     id: `${selectedIndicatorType.value}_${Date.now()}`,
+    indicatorId: selectedIndicatorType.value,
     name: indicatorForm.value.name || generateIndicatorName(selectedIndicatorType.value, indicatorForm.value.parameters),
-    type: selectedIndicatorType.value,
+    displayName: indicatorForm.value.name || generateIndicatorName(selectedIndicatorType.value, indicatorForm.value.parameters),
+    category: config.category,
+    description: config.description,
     parameters: { ...indicatorForm.value.parameters },
-    color: indicatorForm.value.color,
-    overlay: indicatorForm.value.overlay,
+    timeComplexity: config.timeComplexity,
+    memoryUsage: config.memoryUsage,
+    outputType: config.outputType,
+    scale: config.scale,
+    range: config.range,
     visible: indicatorForm.value.visible,
-    values: []
+    color: indicatorForm.value.color
   }
   
   const updatedIndicators = [...props.modelValue, newIndicator]
@@ -176,12 +178,12 @@ const addIndicator = async () => {
 const updateIndicator = async () => {
   if (!validateForm() || !editingIndicator.value) return
   
-  const updatedIndicator: Indicator = {
+  const updatedIndicator: ConfiguredIndicator = {
     ...editingIndicator.value,
     name: indicatorForm.value.name || generateIndicatorName(selectedIndicatorType.value, indicatorForm.value.parameters),
+    displayName: indicatorForm.value.name || generateIndicatorName(selectedIndicatorType.value, indicatorForm.value.parameters),
     parameters: { ...indicatorForm.value.parameters },
     color: indicatorForm.value.color,
-    overlay: indicatorForm.value.overlay,
     visible: indicatorForm.value.visible
   }
   
@@ -208,14 +210,13 @@ const toggleIndicatorVisibility = (indicatorId: string) => {
   emit('update:modelValue', updatedIndicators)
 }
 
-const duplicateIndicator = (indicator: Indicator) => {
+const duplicateIndicator = (indicator: ConfiguredIndicator) => {
   if (!canAddMoreIndicators.value) return
   
-  const duplicated: Indicator = {
+  const duplicated: ConfiguredIndicator = {
     ...indicator,
-    id: `${indicator.type}_${Date.now()}`,
-    name: `${indicator.name} (Copy)`,
-    values: []
+    id: `${indicator.indicatorId}_${Date.now()}`,
+    name: `${indicator.name} (Copy)`
   }
   
   const updatedIndicators = [...props.modelValue, duplicated]
@@ -229,15 +230,16 @@ const previewIndicatorConfig = async () => {
   isLoadingPreview.value = true
   
   try {
-    const preview: Indicator = {
+    const baseIndicator = indicatorsStore.getIndicatorConfig(selectedIndicatorType.value)
+    if (!baseIndicator) throw new Error('Indicator not found')
+    
+    const preview: ConfiguredIndicator = {
+      ...baseIndicator,
       id: 'preview',
-      name: indicatorForm.value.name || generateIndicatorName(selectedIndicatorType.value, indicatorForm.value.parameters),
-      type: selectedIndicatorType.value,
+      indicatorId: selectedIndicatorType.value,
       parameters: { ...indicatorForm.value.parameters },
       color: indicatorForm.value.color,
-      overlay: indicatorForm.value.overlay,
-      visible: true,
-      values: []
+      visible: true
     }
     
     previewIndicator.value = preview
@@ -252,7 +254,7 @@ const previewIndicatorConfig = async () => {
 const getParameterInputType = (param: IndicatorParameter): string => {
   switch (param.type) {
     case 'number':
-    case 'integer':
+    case 'integer' as any:
       return 'number'
     case 'boolean':
       return 'checkbox'
@@ -266,7 +268,7 @@ const getParameterInputType = (param: IndicatorParameter): string => {
 }
 
 const getParameterStep = (param: IndicatorParameter): string | undefined => {
-  if (param.type === 'integer') return '1'
+  if ((param as any).type === 'integer') return '1'
   if (param.type === 'number') return '0.01'
   return undefined
 }
@@ -284,7 +286,7 @@ watch(selectedIndicatorType, (newType) => {
         }
       })
       indicatorForm.value.parameters = defaultParams
-      indicatorForm.value.overlay = config.overlay || false
+      indicatorForm.value.overlay = (config as any).overlay || false
       
       // Auto-generate name if not editing
       if (!editingIndicator.value) {
@@ -332,7 +334,7 @@ watch(() => indicatorForm.value.parameters, () => {
           ></div>
           <div class="indicator-details">
             <span class="indicator-name">{{ indicator.name }}</span>
-            <span class="indicator-type">{{ indicator.type }}</span>
+            <span class="indicator-type">{{ indicator.indicatorId }}</span>
           </div>
         </div>
         
@@ -422,13 +424,13 @@ watch(() => indicatorForm.value.parameters, () => {
                 class="form-group"
               >
                 <label class="form-label">
-                  {{ param.label || param.name }}
+                  {{ (param as any).label || param.name }}
                   <span v-if="param.required" class="required">*</span>
                 </label>
                 
                 <!-- Number/Integer Input -->
                 <input 
-                  v-if="param.type === 'number' || param.type === 'integer'"
+                  v-if="param.type === 'number' || (param as any).type === 'integer'"
                   v-model.number="indicatorForm.parameters[param.name]"
                   :type="getParameterInputType(param)"
                   :step="getParameterStep(param)"
@@ -575,13 +577,13 @@ watch(() => indicatorForm.value.parameters, () => {
                 class="form-group"
               >
                 <label class="form-label">
-                  {{ param.label || param.name }}
+                  {{ (param as any).label || param.name }}
                   <span v-if="param.required" class="required">*</span>
                 </label>
                 
                 <!-- Same parameter inputs as add dialog -->
                 <input 
-                  v-if="param.type === 'number' || param.type === 'integer'"
+                  v-if="param.type === 'number' || (param as any).type === 'integer'"
                   v-model.number="indicatorForm.parameters[param.name]"
                   :type="getParameterInputType(param)"
                   :step="getParameterStep(param)"

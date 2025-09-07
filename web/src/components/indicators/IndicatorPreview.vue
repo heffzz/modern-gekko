@@ -132,7 +132,7 @@
               :key="key"
               class="stat-item"
             >
-              <span class="stat-label">{{ formatStatLabel(key) }}</span>
+              <span class="stat-label">{{ formatStatLabel(String(key)) }}</span>
               <span class="stat-value">{{ formatValue(value) }}</span>
             </div>
           </div>
@@ -213,6 +213,7 @@ const previewData = ref<IndicatorPreviewData | null>(props.previewData || null)
 const previewCanvas = ref<HTMLCanvasElement | null>(null)
 const chartWidth = ref(400)
 const chartHeight = ref(200)
+const updateTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
 
 // Initialize parameter values
 const initializeParameters = () => {
@@ -364,8 +365,10 @@ watch(
   () => ({ ...parameterValues }),
   () => {
     // Debounce preview updates
-    clearTimeout(updatePreview.timeout)
-    updatePreview.timeout = setTimeout(updatePreview, 500)
+    if (updateTimeout.value) {
+      clearTimeout(updateTimeout.value)
+    }
+    updateTimeout.value = setTimeout(updatePreview, 500)
   },
   { deep: true }
 )

@@ -353,6 +353,27 @@ class WilliamsR {
       signals
     };
   }
+
+  // Metodo semplificato per i test
+  getSignal() {
+    const wr = this.getResult();
+    if (wr === null) {
+      // Fallback se non ci sono abbastanza dati
+      return {
+        overbought: false,
+        oversold: false,
+        trend: 'neutral',
+        value: -50
+      };
+    }
+
+    return {
+      overbought: wr > -20,
+      oversold: wr < -80,
+      trend: wr > -50 ? 'bullish' : 'bearish',
+      value: wr
+    };
+  }
 }
 
-module.exports = WilliamsR;
+export default WilliamsR;

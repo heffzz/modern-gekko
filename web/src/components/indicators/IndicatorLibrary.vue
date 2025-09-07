@@ -116,7 +116,7 @@
 
     <!-- Preview Modal -->
     <IndicatorPreview
-      v-if="showPreview"
+      v-if="showPreview && selectedIndicator"
       :indicator="selectedIndicator"
       :preview-data="previewData"
       @close="closePreview"
@@ -359,7 +359,7 @@ const addToChart = (indicator: Indicator) => {
       }, {} as Record<string, any>),
       visible: true,
       color: indicatorStore.getNextColor()
-    })
+    } as any)
     
     notificationStore.addNotification({
       type: 'success',

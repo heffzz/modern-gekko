@@ -1,47 +1,81 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRoute } from 'vue-router'
-import { useMainStore } from '@/stores/main'
+import { ref, onMounted, onUnmounted } from 'vue'
 import Sidebar from './ui/Sidebar.vue'
 import Header from './ui/Header.vue'
-
-const route = useRoute()
-const mainStore = useMainStore()
 const sidebarCollapsed = ref(false)
+const isMobile = ref(false)
+
+function checkMobile() {
+  isMobile.value = window.innerWidth < 768
+  if (isMobile.value) {
+    sidebarCollapsed.value = true
+  }
+}
 
 function toggleSidebar() {
   sidebarCollapsed.value = !sidebarCollapsed.value
 }
+
+function handleResize() {
+  checkMobile()
+}
+
+function handleTouchStart(e: TouchEvent) {
+  if (isMobile.value && e.touches[0].clientX < 20) {
+    sidebarCollapsed.value = false
+  }
+}
+
+onMounted(() => {
+  checkMobile()
+  window.addEventListener('resize', handleResize)
+  document.addEventListener('touchstart', handleTouchStart)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
+  document.removeEventListener('touchstart', handleTouchStart)
+})
 </script>
 
 <template>
-  <div class="app-layout">
+  <div class="app-layout" :class="{ 'mobile': isMobile }">
     <!-- Mobile Overlay -->
-    <div 
-      v-if="!sidebarCollapsed" 
-      class="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden transition-opacity duration-300"
-      @click="toggleSidebar"
-    ></div>
+    <Transition name="overlay">
+      <div 
+        v-if="!sidebarCollapsed && isMobile" 
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 transition-all duration-300 ease-out"
+        @click="toggleSidebar"
+        @touchstart.prevent="toggleSidebar"
+      ></div>
+    </Transition>
     
     <!-- Sidebar -->
     <Sidebar 
       :collapsed="sidebarCollapsed" 
+      :is-mobile="isMobile"
       @toggle="toggleSidebar"
       class="sidebar"
     />
     
     <!-- Main Content -->
-    <div class="main-content" :class="{ 'sidebar-collapsed': sidebarCollapsed }">
+    <div class="main-content" :class="{ 
+      'sidebar-collapsed': sidebarCollapsed,
+      'mobile': isMobile 
+    }">
       <!-- Header -->
       <Header 
-        :title="(route.meta.title as string) || String(route.name) || 'Dashboard'"
+        :title="($route.meta.title as string) || String($route.name) || 'Dashboard'"
+        :is-mobile="isMobile"
         @toggle-sidebar="toggleSidebar"
         class="header"
       />
       
       <!-- Page Content -->
       <main class="page-content">
-        <slot />
+        <div class="content-wrapper">
+          <slot />
+        </div>
       </main>
     </div>
   </div>
@@ -54,6 +88,11 @@ function toggleSidebar() {
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
   transition: all 0.3s ease;
   overflow: hidden;
+  position: relative;
+}
+
+.app-layout.mobile {
+  flex-direction: column;
 }
 
 .dark .app-layout {
@@ -63,6 +102,21 @@ function toggleSidebar() {
 .sidebar {
   flex-shrink: 0;
   z-index: 30;
+  transition: transform 0.3s ease;
+}
+
+@media (max-width: 767px) {
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    transform: translateX(-100%);
+  }
+  
+  .sidebar:not(.collapsed) {
+    transform: translateX(0);
+  }
 }
 
 .main-content {
@@ -75,8 +129,63 @@ function toggleSidebar() {
   overflow: hidden;
 }
 
+.main-content.mobile {
+  width: 100%;
+  margin-left: 0 !important;
+}
+
 .main-content.sidebar-collapsed {
   margin-left: 0;
+}
+
+.page-content {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.content-wrapper {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 1rem;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (min-width: 768px) {
+  .content-wrapper {
+    padding: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .content-wrapper {
+    padding: 2rem;
+  }
+}
+
+/* Overlay transitions */
+.overlay-enter-active,
+.overlay-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.overlay-enter-from,
+.overlay-leave-to {
+  opacity: 0;
+}
+
+/* Touch improvements */
+@media (hover: none) and (pointer: coarse) {
+  .app-layout {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  
+  .content-wrapper {
+    scroll-behavior: smooth;
+  }
 }
 
 .header {

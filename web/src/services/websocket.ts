@@ -7,7 +7,7 @@ class WebSocketService {
   private maxReconnectAttempts = 5
   private reconnectDelay = 1000
 
-  connect(url: string = 'http://localhost:3000'): void {
+  connect(url: string = 'http://localhost:3002'): void {
     if (this.socket?.connected) {
       return
     }

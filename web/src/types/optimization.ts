@@ -13,7 +13,7 @@ export interface ParameterRange {
   min?: number
   max?: number
   step?: number
-  values?: any[]
+  values?: (number | string | boolean)[]
 }
 
 export interface DataSource {
@@ -50,7 +50,7 @@ export interface OptimizationResult {
   duration?: number
   totalCombinations: number
   completedCombinations: number
-  bestParameters: Record<string, any>
+  bestParameters: Record<string, number | string | boolean>
   bestPerformance: PerformanceMetrics
   results: OptimizationPoint[]
   summary: OptimizationSummary
@@ -59,7 +59,7 @@ export interface OptimizationResult {
 
 export interface OptimizationPoint {
   id: string
-  parameters: Record<string, any>
+  parameters: Record<string, number | string | boolean>
   performance: PerformanceMetrics
   trades: number
   duration: number
@@ -138,8 +138,8 @@ export interface OptimizationTemplate {
 export interface HeatmapData {
   xParameter: string
   yParameter: string
-  xValues: any[]
-  yValues: any[]
+  xValues: (number | string | boolean)[]
+  yValues: (number | string | boolean)[]
   data: Map<string, HeatmapPoint>
   minValue: number
   maxValue: number
@@ -147,8 +147,8 @@ export interface HeatmapData {
 }
 
 export interface HeatmapPoint {
-  xValue: any
-  yValue: any
+  xValue: number | string | boolean
+  yValue: number | string | boolean
   value: number
   result: OptimizationPoint
   rank: number
@@ -173,11 +173,11 @@ export interface ParameterSweepConfig {
 
 export interface ParameterConfig {
   enabled: boolean
-  fixed?: any
+  fixed?: number | string | boolean
   min?: number
   max?: number
   step?: number
-  values?: any[]
+  values?: (number | string | boolean)[]
 }
 
 export interface OptimizationComparison {
@@ -193,7 +193,7 @@ export interface OptimizationComparison {
 export interface ComparisonResult {
   optimizationId: string
   strategyName: string
-  bestParameters: Record<string, any>
+  bestParameters: Record<string, number | string | boolean>
   performance: PerformanceMetrics
   rank: Record<OptimizationMetric, number>
   scores: Record<OptimizationMetric, number>
@@ -313,29 +313,45 @@ export enum ComparisonOperator {
 }
 
 // Type Guards
-export function isOptimizationResult(obj: any): obj is OptimizationResult {
-  return obj && 
-    typeof obj.id === 'string' &&
-    typeof obj.strategyId === 'string' &&
-    Object.values(OptimizationStatus).includes(obj.status) &&
-    typeof obj.startTime === 'string' &&
-    typeof obj.totalCombinations === 'number' &&
-    Array.isArray(obj.results)
+export function isOptimizationResult(obj: unknown): obj is OptimizationResult {
+  return obj !== null &&
+    typeof obj === 'object' &&
+    'id' in obj &&
+    'strategyId' in obj &&
+    'status' in obj &&
+    'startTime' in obj &&
+    'totalCombinations' in obj &&
+    'results' in obj &&
+    typeof (obj as any).id === 'string' &&
+    typeof (obj as any).strategyId === 'string' &&
+    Object.values(OptimizationStatus).includes((obj as any).status) &&
+    typeof (obj as any).startTime === 'string' &&
+    typeof (obj as any).totalCombinations === 'number' &&
+    Array.isArray((obj as any).results)
 }
 
-export function isOptimizationPoint(obj: any): obj is OptimizationPoint {
-  return obj &&
-    typeof obj.id === 'string' &&
-    typeof obj.parameters === 'object' &&
-    typeof obj.performance === 'object' &&
-    typeof obj.trades === 'number'
+export function isOptimizationPoint(obj: unknown): obj is OptimizationPoint {
+  return obj !== null &&
+    typeof obj === 'object' &&
+    'id' in obj &&
+    'parameters' in obj &&
+    'performance' in obj &&
+    'trades' in obj &&
+    typeof (obj as any).id === 'string' &&
+    typeof (obj as any).parameters === 'object' &&
+    typeof (obj as any).performance === 'object' &&
+    typeof (obj as any).trades === 'number'
 }
 
-export function isPerformanceMetrics(obj: any): obj is PerformanceMetrics {
-  return obj &&
-    typeof obj.totalReturn === 'number' &&
-    typeof obj.sharpeRatio === 'number' &&
-    typeof obj.maxDrawdown === 'number'
+export function isPerformanceMetrics(obj: unknown): obj is PerformanceMetrics {
+  return obj !== null &&
+    typeof obj === 'object' &&
+    'totalReturn' in obj &&
+    'sharpeRatio' in obj &&
+    'maxDrawdown' in obj &&
+    typeof (obj as any).totalReturn === 'number' &&
+    typeof (obj as any).sharpeRatio === 'number' &&
+    typeof (obj as any).maxDrawdown === 'number'
 }
 
 // Utility Functions
@@ -384,9 +400,9 @@ export function rankOptimizationResults(
 export function generateParameterCombinations(
   parameters: Record<string, ParameterRange>,
   maxCombinations: number = 1000
-): Record<string, any>[] {
+): Record<string, number | string | boolean>[] {
   const paramNames = Object.keys(parameters)
-  const paramValues: Record<string, any[]> = {}
+  const paramValues: Record<string, (number | string | boolean)[]> = {}
   
   // Generate value arrays for each parameter
   for (const name of paramNames) {

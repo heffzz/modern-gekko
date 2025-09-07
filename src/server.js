@@ -48,7 +48,7 @@ const io = new Server(server, {
     methods: ['GET', 'POST']
   }
 });
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3002;
 
 // Security middleware
 app.use(helmet());

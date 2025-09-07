@@ -1,7 +1,7 @@
 import axios from 'axios'
 import type { ApiResponse, ServerHealth, BacktestResult, Strategy, Indicator } from '@/types'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+const API_BASE_URL = import.meta.env.VITE_API_URL || ''
 
 const api = axios.create({
   baseURL: `${API_BASE_URL}/api`,
@@ -44,7 +44,7 @@ export const apiService = {
   async runBacktest(data: {
     strategy: string
     data: File | string
-    parameters?: Record<string, any>
+    parameters?: Record<string, number | string | boolean>
   }): Promise<BacktestResult> {
     const formData = new FormData()
     formData.append('strategy', data.strategy)
@@ -72,7 +72,7 @@ export const apiService = {
     return response.data.data!
   },
 
-  async startBacktest(request: any): Promise<BacktestResult> {
+  async startBacktest(request: unknown): Promise<BacktestResult> {
     const response = await api.post<ApiResponse<BacktestResult>>('/backtests', request)
     return response.data.data!
   },
@@ -118,7 +118,7 @@ export const apiService = {
 
   async getIndicatorPreview(
     name: string,
-    params: Record<string, any>,
+    params: Record<string, number | string | boolean>,
     data: number[]
   ): Promise<number[]> {
     const response = await api.post<ApiResponse<number[]>>(`/indicators/${name}/preview`, {
@@ -134,8 +134,8 @@ export const apiService = {
     timeframe: string,
     from?: number,
     to?: number
-  ): Promise<any[]> {
-    const response = await api.get<ApiResponse<any[]>>('/candles', {
+  ): Promise<unknown[]> {
+    const response = await api.get<ApiResponse<unknown[]>>('/candles', {
       params: { symbol, timeframe, from, to },
     })
     return response.data.data!

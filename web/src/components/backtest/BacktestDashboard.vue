@@ -229,10 +229,10 @@
           <div class="card-header">
             <div class="card-title">
               <h3 class="font-semibold text-gray-900 dark:text-white">
-                {{ backtest.strategyName }}
+                {{ (backtest as any).strategyName }}
               </h3>
-              <span :class="['status-badge', `status-${backtest.status}`]">
-                {{ backtest.status }}
+              <span :class="['status-badge', `status-${(backtest as any).status}`]">
+                {{ (backtest as any).status }}
               </span>
             </div>
             
@@ -300,9 +300,9 @@
           </div>
           
           <!-- Mini Chart -->
-          <div v-if="backtest.performance?.equityCurve" class="mini-chart">
+          <div v-if="(backtest.performance as any)?.equityCurve" class="mini-chart">
             <canvas 
-              :ref="el => setupMiniChart(el, backtest.performance.equityCurve)"
+              :ref="el => setupMiniChart(el as HTMLCanvasElement, (backtest.performance as any).equityCurve)"
               class="w-full h-12"
             />
           </div>
@@ -335,17 +335,17 @@
                 <td class="table-td">
                   <div class="strategy-cell">
                     <span class="font-medium text-gray-900 dark:text-white">
-                      {{ backtest.strategyName }}
+                      {{ (backtest as any).strategyName }}
                     </span>
                     <span class="text-sm text-gray-500">
-                      v{{ backtest.strategyVersion }}
+                      v{{ (backtest as any).strategyVersion }}
                     </span>
                   </div>
                 </td>
                 
                 <td class="table-td">
-                  <span :class="['status-badge', `status-${backtest.status}`]">
-                    {{ backtest.status }}
+                  <span :class="['status-badge', `status-${(backtest as any).status}`]">
+                    {{ (backtest as any).status }}
                   </span>
                 </td>
                 
@@ -444,7 +444,7 @@ import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   ChartBarIcon,
-  TrendingUpIcon,
+
   StarIcon,
   ClockIcon,
   PlusIcon,
@@ -501,13 +501,13 @@ const filteredBacktests = computed(() => {
   }
   
   if (filters.value.status) {
-    filtered = filtered.filter(b => b.status === filters.value.status)
+    filtered = filtered.filter(b => (b as any).status === filters.value.status)
   }
   
   if (filters.value.search) {
     const search = filters.value.search.toLowerCase()
     filtered = filtered.filter(b => 
-      b.strategyName?.toLowerCase().includes(search) ||
+      (b as any).strategyName?.toLowerCase().includes(search) ||
       b.id.toLowerCase().includes(search)
     )
   }
@@ -529,16 +529,16 @@ const filteredBacktests = computed(() => {
   
   // Apply sorting
   filtered.sort((a, b) => {
-    let aValue: any
-    let bValue: any
+    let aValue: string | number
+    let bValue: string | number
     
     if (sortBy.value.includes('.')) {
       const [obj, prop] = sortBy.value.split('.')
-      aValue = (a as any)[obj]?.[prop]
-      bValue = (b as any)[obj]?.[prop]
+      aValue = (a as Record<string, any>)[obj]?.[prop]
+      bValue = (b as Record<string, any>)[obj]?.[prop]
     } else {
-      aValue = (a as any)[sortBy.value]
-      bValue = (b as any)[sortBy.value]
+      aValue = (a as Record<string, any>)[sortBy.value]
+      bValue = (b as Record<string, any>)[sortBy.value]
     }
     
     if (aValue === undefined) aValue = 0
@@ -562,14 +562,14 @@ const totalPages = computed(() => {
 })
 
 const stats = computed(() => {
-  const completed = backtests.value.filter(b => b.status === 'completed')
+  const completed = backtests.value.filter(b => (b as any).status === 'completed')
   const returns = completed.map(b => b.performance?.totalReturn || 0)
   
   return {
     totalBacktests: backtests.value.length,
     avgReturn: returns.length > 0 ? returns.reduce((a, b) => a + b, 0) / returns.length : 0,
     bestReturn: returns.length > 0 ? Math.max(...returns) : 0,
-    runningBacktests: backtests.value.filter(b => b.status === 'running').length
+    runningBacktests: backtests.value.filter(b => (b as any).status === 'running').length
   }
 })
 
@@ -598,8 +598,8 @@ const duplicateBacktest = async (backtest: StrategyBacktestResult) => {
   try {
     // Create a new backtest with same parameters
     const duplicate = {
-      ...backtest.request,
-      name: `${backtest.strategyName} (Copy)`
+      ...(backtest as any).request,
+      name: `${(backtest as any).strategyName} (Copy)`
     }
     
     router.push({
@@ -617,7 +617,7 @@ const duplicateBacktest = async (backtest: StrategyBacktestResult) => {
   }
 }
 
-const deleteBacktest = async (id: string) => {
+const deleteBacktest = async (_id: string) => {
   if (!confirm('Are you sure you want to delete this backtest?')) {
     return
   }
@@ -986,6 +986,137 @@ onMounted(async () => {
   
   .stats-grid {
     @apply grid-cols-2;
+  }
+  
+  .backtest-card {
+    @apply p-4;
+  }
+  
+  .performance-metrics {
+    @apply grid-cols-2 gap-2;
+  }
+  
+  .table-container {
+    @apply text-sm;
+  }
+  
+  .pagination {
+    @apply flex-col gap-2 items-stretch;
+  }
+  
+  .pagination-btn {
+    @apply w-full justify-center;
+  }
+}
+
+@media (max-width: 640px) {
+  .dashboard-header {
+    @apply p-4;
+  }
+  
+  .dashboard-title {
+    @apply text-xl;
+  }
+  
+  .backtest-card {
+    @apply p-3;
+  }
+  
+  .card-header {
+    @apply flex-col gap-2 items-start;
+  }
+  
+  .card-actions {
+    @apply w-full justify-end;
+  }
+  
+  .performance-metrics {
+    @apply grid-cols-1 gap-3;
+  }
+  
+  .metric {
+    @apply text-left;
+  }
+  
+  .view-toggle {
+    @apply w-full;
+  }
+  
+  .toggle-btn {
+    @apply flex-1 justify-center;
+  }
+  
+  .sort-controls {
+    @apply flex-col gap-2 w-full;
+  }
+  
+  .sort-select {
+    @apply w-full;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-header {
+    @apply p-3;
+  }
+  
+  .dashboard-title {
+    @apply text-lg;
+  }
+  
+  .backtest-card {
+    @apply p-2;
+  }
+  
+  .card-content {
+    @apply space-y-2;
+  }
+  
+  .btn-primary,
+  .btn-secondary {
+    @apply px-3 py-2 text-sm;
+  }
+  
+  .pagination-info {
+    @apply text-xs;
+  }
+  
+  .table-container {
+    @apply text-xs;
+  }
+}
+
+/* Touch improvements */
+@media (hover: none) and (pointer: coarse) {
+  .backtest-card {
+    @apply touch-manipulation;
+    transition: transform 0.1s ease;
+  }
+  
+  .backtest-card:active {
+    transform: scale(0.98);
+  }
+  
+  .btn-primary,
+  .btn-secondary,
+  .pagination-btn {
+    @apply touch-manipulation;
+    min-height: 44px;
+  }
+  
+  .btn-primary:active,
+  .btn-secondary:active,
+  .pagination-btn:active {
+    transform: scale(0.98);
+  }
+  
+  .toggle-btn {
+    @apply touch-manipulation;
+    min-height: 40px;
+  }
+  
+  .toggle-btn:active {
+    transform: scale(0.98);
   }
 }
 </style>

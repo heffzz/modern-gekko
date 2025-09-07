@@ -175,3 +175,4 @@ data/
 .env.production
 keys/
 secrets/
+.vercel

@@ -10,11 +10,24 @@ export interface Strategy {
   version?: string
   createdAt: number
   lastModified?: number
+  updatedAt?: number
   isActive?: boolean
+  hasErrors?: boolean
+  complexity?: string
   tags?: string[]
   parameters?: StrategyParameter[]
   performance?: StrategyPerformance
   metadata?: StrategyMetadata
+  lastBacktestResult?: {
+    totalReturn: number
+    winRate: number
+    maxDrawdown: number
+  }
+  config?: {
+    description: string
+    parameters: Record<string, any>
+    indicators: string[]
+  }
 }
 
 export interface StrategyTemplate {
@@ -36,11 +49,11 @@ export interface StrategyTemplate {
 export interface StrategyParameter {
   name: string
   type: 'number' | 'string' | 'boolean' | 'select' | 'range'
-  default: any
+  default: number | string | boolean
   min?: number
   max?: number
   step?: number
-  options?: Array<{ label: string; value: any }>
+  options?: Array<{ label: string; value: number | string | boolean }>
   description?: string
   required?: boolean
   validation?: {
@@ -115,7 +128,7 @@ export interface StrategyValidationWarning {
 
 export interface StrategyBacktestRequest {
   strategyId: string
-  parameters?: Record<string, any>
+  parameters?: Record<string, number | string | boolean>
   dataSource: {
     symbol: string
     timeframe: string
@@ -136,7 +149,7 @@ export interface StrategyBacktestRequest {
 export interface StrategyBacktestResult {
   id: string
   strategyId: string
-  parameters: Record<string, any>
+  parameters: Record<string, number | string | boolean>
   performance: StrategyPerformance
   trades: BacktestTrade[]
   equityCurve: EquityPoint[]
@@ -264,7 +277,7 @@ export interface StrategyOptimizationResult {
   strategyId: string
   request: StrategyOptimizationRequest
   results: OptimizationPoint[]
-  bestParameters: Record<string, any>
+  bestParameters: Record<string, number | string | boolean>
   bestPerformance: StrategyPerformance
   convergenceData: ConvergencePoint[]
   heatmapData?: HeatmapPoint[]
@@ -274,7 +287,7 @@ export interface StrategyOptimizationResult {
 }
 
 export interface OptimizationPoint {
-  parameters: Record<string, any>
+  parameters: Record<string, number | string | boolean>
   performance: StrategyPerformance
   rank: number
   fitness: number
@@ -291,7 +304,7 @@ export interface HeatmapPoint {
   x: number
   y: number
   value: number
-  parameters: Record<string, any>
+  parameters: Record<string, number | string | boolean>
 }
 
 export interface OptimizationStatistics {
@@ -334,7 +347,7 @@ export interface StrategyPortfolio {
   strategies: {
     strategyId: string
     allocation: number
-    parameters?: Record<string, any>
+    parameters?: Record<string, number | string | boolean>
   }[]
   rebalanceFrequency: 'daily' | 'weekly' | 'monthly' | 'quarterly'
   riskBudget?: number
@@ -359,7 +372,7 @@ export interface StrategySignal {
   quantity?: number
   reason: string
   metadata?: {
-    indicators?: Record<string, any>
+    indicators?: Record<string, number | string | boolean>
     conditions?: string[]
     riskLevel?: number
   }
@@ -378,7 +391,7 @@ export interface StrategyAlert {
   timestamp: number
   acknowledged?: boolean
   acknowledgedAt?: number
-  metadata?: Record<string, any>
+  metadata?: Record<string, number | string | boolean>
 }
 
 // Enums and Types
@@ -518,30 +531,47 @@ export const TRADING_STYLES: Array<{ value: string; label: string; description: 
 ]
 
 // Type guards
-export const isStrategy = (obj: any): obj is Strategy => {
-  return obj && 
-    typeof obj.id === 'string' &&
-    typeof obj.name === 'string' &&
-    typeof obj.code === 'string' &&
-    typeof obj.type === 'string' &&
-    typeof obj.category === 'string'
+export const isStrategy = (obj: unknown): obj is Strategy => {
+  return obj !== null &&
+    typeof obj === 'object' &&
+    'id' in obj &&
+    'name' in obj &&
+    'code' in obj &&
+    'type' in obj &&
+    'category' in obj &&
+    typeof (obj as any).id === 'string' &&
+    typeof (obj as any).name === 'string' &&
+    typeof (obj as any).code === 'string' &&
+    typeof (obj as any).type === 'string' &&
+    typeof (obj as any).category === 'string'
 }
 
-export const isStrategyTemplate = (obj: any): obj is StrategyTemplate => {
-  return obj &&
-    typeof obj.id === 'string' &&
-    typeof obj.name === 'string' &&
-    typeof obj.code === 'string' &&
-    Array.isArray(obj.parameters)
+export const isStrategyTemplate = (obj: unknown): obj is StrategyTemplate => {
+  return obj !== null &&
+    typeof obj === 'object' &&
+    'id' in obj &&
+    'name' in obj &&
+    'code' in obj &&
+    'parameters' in obj &&
+    typeof (obj as any).id === 'string' &&
+    typeof (obj as any).name === 'string' &&
+    typeof (obj as any).code === 'string' &&
+    Array.isArray((obj as any).parameters)
 }
 
-export const isBacktestResult = (obj: any): obj is StrategyBacktestResult => {
-  return obj &&
-    typeof obj.id === 'string' &&
-    typeof obj.strategyId === 'string' &&
-    obj.performance &&
-    Array.isArray(obj.trades) &&
-    Array.isArray(obj.equityCurve)
+export const isBacktestResult = (obj: unknown): obj is StrategyBacktestResult => {
+  return obj !== null &&
+    typeof obj === 'object' &&
+    'id' in obj &&
+    'strategyId' in obj &&
+    'performance' in obj &&
+    'trades' in obj &&
+    'equityCurve' in obj &&
+    typeof (obj as any).id === 'string' &&
+    typeof (obj as any).strategyId === 'string' &&
+    (obj as any).performance &&
+    Array.isArray((obj as any).trades) &&
+    Array.isArray((obj as any).equityCurve)
 }
 
 // Utility functions

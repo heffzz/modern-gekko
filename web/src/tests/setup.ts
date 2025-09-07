@@ -131,7 +131,7 @@ class MockFileReader {
   dispatchEvent() { return true }
 }
 
-global.FileReader = MockFileReader as any
+global.FileReader = MockFileReader as typeof FileReader
 
 // Configure Vue Test Utils
 config.global.plugins = [createPinia()]

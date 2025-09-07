@@ -1,35 +1,11 @@
 {
-  "version": 2,
-  "name": "modern-gekko",
-  "builds": [
+  "buildCommand": "cd web && npm ci && npm run build",
+  "outputDirectory": "web/dist",
+  "installCommand": "npm ci",
+  "rewrites": [
     {
-      "src": "src/server.js",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "web/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/src/server.js"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/web/dist/$1"
-    }
-  ],
-  "env": {
-    "NODE_ENV": "production"
-  },
-  "functions": {
-    "src/server.js": {
-      "maxDuration": 30
-    }
-  }
+  ]
 }

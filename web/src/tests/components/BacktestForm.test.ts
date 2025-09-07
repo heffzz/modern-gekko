@@ -10,14 +10,17 @@ vi.mock('@/stores/backtest')
 vi.mock('@/stores/strategy')
 vi.mock('@/stores/notifications', () => ({
   useNotificationStore: () => ({
-    addNotification: vi.fn()
+    addNotification: vi.fn(),
+    error: vi.fn(),
+    success: vi.fn(),
+    info: vi.fn()
   })
 }))
 
 describe('BacktestForm', () => {
-  let wrapper: any
-  let backtestStore: any
-  let strategyStore: any
+  let wrapper: ReturnType<typeof mount>
+  let backtestStore: ReturnType<typeof useBacktestStore>
+  let strategyStore: ReturnType<typeof useStrategyStore>
   beforeEach(() => {
     setActivePinia(createPinia())
     
@@ -26,7 +29,7 @@ describe('BacktestForm', () => {
       startBacktest: vi.fn(),
       validateRequest: vi.fn(() => []),
       isRunning: false
-    }
+    } as any
     
     // Mock the store functions
     vi.mocked(useBacktestStore).mockReturnValue(backtestStore)
@@ -37,36 +40,24 @@ describe('BacktestForm', () => {
           id: 'strategy-1',
           name: 'Test Strategy',
           description: 'A test strategy',
-          parameters: [
-            {
-              name: 'period',
-              type: 'number',
-              default: 20,
-              min: 1,
-              max: 100,
-              step: 1,
-              required: true,
-              description: 'Period parameter'
-            },
-            {
-              name: 'threshold',
-              type: 'number',
-              default: 0.02,
-              min: 0,
-              max: 1,
-              step: 0.01,
-              required: false,
-              description: 'Threshold parameter'
-            }
-          ],
           code: 'module.exports = { /* strategy code */ }',
-          createdAt: '2024-01-01T00:00:00Z',
-          updatedAt: '2024-01-01T00:00:00Z'
+          type: 'custom' as const,
+          category: 'trend' as const,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          config: {
+            description: 'A test strategy',
+            parameters: {
+              period: { type: 'number', default: 20, min: 1, max: 100, step: 1, required: true, description: 'Period parameter' },
+              threshold: { type: 'number', default: 0.02, min: 0, max: 1, step: 0.01, required: false, description: 'Threshold parameter' }
+            },
+            indicators: ['sma', 'rsi']
+          }
         }
       ],
       loadStrategies: vi.fn(),
       initialize: vi.fn().mockResolvedValue(undefined)
-    }
+    } as any
     
     vi.mocked(useBacktestStore).mockReturnValue(backtestStore)
     vi.mocked(useStrategyStore).mockReturnValue(strategyStore)
@@ -92,7 +83,7 @@ describe('BacktestForm', () => {
   })
 
   it('should initialize with default form data', () => {
-    const vm = wrapper.vm
+    const vm = wrapper.vm as any
     
     expect(vm.form.strategyId).toBe('')
     expect(vm.form.dataSource.type).toBe('csv')
@@ -101,7 +92,7 @@ describe('BacktestForm', () => {
   })
 
   it('should update strategy parameters when strategy is selected', async () => {
-    const vm = wrapper.vm
+    const vm = wrapper.vm as any
     
     // Set strategy directly on form
     vm.form.strategyId = 'strategy-1'
@@ -127,12 +118,12 @@ describe('BacktestForm', () => {
     await fileInput.trigger('change')
     await nextTick()
     
-    const vm = wrapper.vm
+    const vm = wrapper.vm as any
     expect(vm.form.csvFile).toStrictEqual(mockFile)
   })
 
   it('should validate form before submission', async () => {
-    backtestStore.validateRequest.mockReturnValue(['Strategy is required'])
+    ;(backtestStore.validateRequest as any).mockReturnValue(['Strategy is required'])
     
     const form = wrapper.find('form')
     await form.trigger('submit')
@@ -143,7 +134,7 @@ describe('BacktestForm', () => {
   })
 
   it('should submit valid form', async () => {
-    const vm = wrapper.vm
+    const vm = wrapper.vm as any
     
     // Set up valid form data
     vm.form.strategyId = 'strategy-1'
@@ -153,8 +144,8 @@ describe('BacktestForm', () => {
     vm.form.portfolio.initialCapital = 10000
     vm.form.dataSource.type = 'csv'
     
-    backtestStore.validateRequest.mockReturnValue([])
-    backtestStore.startBacktest.mockResolvedValue({ id: 'backtest-1' })
+    ;(backtestStore.validateRequest as any).mockReturnValue([])
+    ;(backtestStore.startBacktest as any).mockResolvedValue({ id: 'backtest-1' })
     
     await nextTick() // Wait for form validation
     
@@ -162,7 +153,7 @@ describe('BacktestForm', () => {
     expect(vm.isFormValid).toBe(true)
     
     const runButton = wrapper.find('[data-testid="run-backtest-btn"]')
-    expect(runButton.element.disabled).toBe(false)
+    expect((runButton.element as HTMLButtonElement).disabled).toBe(false)
     
     const form = wrapper.find('form')
     await form.trigger('submit')
@@ -181,7 +172,7 @@ describe('BacktestForm', () => {
   })
 
   it('should update parameter values correctly', async () => {
-    const vm = wrapper.vm
+    const vm = wrapper.vm as any
     
     // Select strategy first
     vm.form.strategyId = 'strategy-1'
@@ -194,7 +185,7 @@ describe('BacktestForm', () => {
   })
 
   it('should reset form correctly', async () => {
-    const vm = wrapper.vm
+    const vm = wrapper.vm as any
     
     // Set some form data
     vm.form.strategyId = 'strategy-1'
@@ -210,7 +201,7 @@ describe('BacktestForm', () => {
   })
 
   it('should handle file validation', async () => {
-    const vm = wrapper.vm
+    const vm = wrapper.vm as any
     
     // Test valid CSV file
     const validFile = createMockFile('timestamp,open,high,low,close,volume\n1640995200,100,105,95,102,1000', 'test.csv', 'text/csv')
@@ -227,7 +218,7 @@ describe('BacktestForm', () => {
   })
 
   it('should calculate estimated duration', () => {
-    const vm = wrapper.vm
+    const vm = wrapper.vm as any
     
     vm.form.dataSource.startDate = '2024-01-01'
     vm.form.dataSource.endDate = '2024-01-31'
@@ -237,7 +228,7 @@ describe('BacktestForm', () => {
   })
 
   it('should show/hide advanced options', async () => {
-    const vm = wrapper.vm
+    const vm = wrapper.vm as any
     
     expect(vm.showAdvanced).toBe(false)
     
@@ -248,7 +239,7 @@ describe('BacktestForm', () => {
   })
 
   it('should handle form submission error', async () => {
-    const vm = wrapper.vm
+    const vm = wrapper.vm as any
     
     vm.form.strategyId = 'strategy-1'
     vm.form.dataSource.startDate = '2024-01-01'
@@ -257,8 +248,8 @@ describe('BacktestForm', () => {
     vm.form.endDate = '2024-01-31'
     vm.form.csvFile = new File(['test'], 'test.csv', { type: 'text/csv' })
     
-    backtestStore.validateRequest.mockReturnValue([])
-    backtestStore.startBacktest.mockRejectedValue(new Error('API Error'))
+    ;(backtestStore.validateRequest as any).mockReturnValue([])
+    ;(backtestStore.startBacktest as any).mockRejectedValue(new Error('API Error'))
     
     // Call runBacktest directly to ensure it's executed
     await vm.runBacktest()
@@ -267,7 +258,7 @@ describe('BacktestForm', () => {
   })
 
   it('should emit events correctly', async () => {
-    const vm = wrapper.vm
+    const vm = wrapper.vm as any
     
     // Set all required form fields to make form valid
     vm.form.strategyId = 'strategy-1'
@@ -277,8 +268,8 @@ describe('BacktestForm', () => {
     vm.form.dataSource.type = 'csv'
     vm.form.csvFile = createMockFile('test.csv', 'timestamp,open,high,low,close,volume\n')
     
-    backtestStore.validateRequest.mockReturnValue([])
-    backtestStore.startBacktest.mockResolvedValue({ id: 'backtest-1' })
+    ;(backtestStore.validateRequest as any).mockReturnValue([])
+    ;(backtestStore.startBacktest as any).mockResolvedValue({ id: 'backtest-1' })
     
     await nextTick() // Wait for form validation
     
@@ -293,7 +284,7 @@ describe('BacktestForm', () => {
     
     const runButton = wrapper.find('[data-testid="run-backtest-btn"]')
     expect(runButton.exists()).toBe(true)
-    expect(runButton.element.disabled).toBe(false)
+    expect((runButton.element as HTMLButtonElement).disabled).toBe(false)
     
     // Trigger form submit instead of button click
     const form = wrapper.find('form')
@@ -302,11 +293,11 @@ describe('BacktestForm', () => {
     
     expect(backtestStore.startBacktest).toHaveBeenCalled()
     expect(wrapper.emitted('backtest-started')).toBeTruthy()
-    expect(wrapper.emitted('backtest-started')[0]).toEqual([{ id: 'backtest-1' }])
+    expect(wrapper.emitted('backtest-started')?.[0]).toEqual([{ id: 'backtest-1' }])
   })
 
   it('should handle portfolio settings correctly', async () => {
-    const vm = wrapper.vm
+    const vm = wrapper.vm as any
     
     const initialCapitalInput = wrapper.find('[data-testid="initial-capital"]')
     const tradingFeeInput = wrapper.find('[data-testid="trading-fee"]')
@@ -319,7 +310,7 @@ describe('BacktestForm', () => {
   })
 
   it('should handle date range validation', () => {
-    const vm = wrapper.vm
+    const vm = wrapper.vm as any
     
     vm.form.dataSource.startDate = '2024-01-31'
     vm.form.dataSource.endDate = '2024-01-01'
@@ -329,7 +320,7 @@ describe('BacktestForm', () => {
   })
 
   it('should handle parameter range validation', () => {
-    const vm = wrapper.vm
+    const vm = wrapper.vm as any
     
     vm.form.strategyId = 'strategy-1'
     vm.form.parameters = { period: 300 } // Above max

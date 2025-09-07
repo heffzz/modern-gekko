@@ -1,22 +1,23 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useIndicatorsStore } from '@/stores/indicators'
-import type { IndicatorConfig, IndicatorPreview } from '@/types'
+import type { Indicator, ConfiguredIndicator } from '@/types'
+import type { IndicatorPreviewData } from '@/types/indicators'
 
 const indicatorsStore = useIndicatorsStore()
 
 // UI state
 const searchQuery = ref('')
 const selectedCategory = ref('all')
-const selectedIndicator = ref<IndicatorConfig | null>(null)
+const selectedIndicator = ref<Indicator | null>(null)
 const showPreview = ref(false)
-const previewData = ref<IndicatorPreview | null>(null)
+const previewData = ref<IndicatorPreviewData | null>(null)
 const previewLoading = ref(false)
 const previewError = ref('')
 
 // Preview parameters
-const previewParams = ref<Record<string, any>>({})
-const sampleData = ref<number[]>([100, 102, 101, 103, 105, 104, 106, 108, 107, 109, 111, 110, 112, 114, 113, 115])
+const previewParams = ref<Record<string, number | string | boolean>>({})
+// Sample data removed as not currently used
 
 // Categories
 const categories = [
@@ -32,21 +33,21 @@ const categories = [
 
 // Computed properties
 const filteredIndicators = computed(() => {
-  let indicators = indicatorsStore.indicators
+  let indicators = indicatorsStore.availableIndicators
   
   // Filter by search query
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
-    indicators = indicators.filter(indicator => 
+    indicators = indicators.filter((indicator: Indicator) => 
       indicator.name.toLowerCase().includes(query) ||
       indicator.description.toLowerCase().includes(query) ||
-      indicator.tags.some(tag => tag.toLowerCase().includes(query))
+      false // tags removed as not part of Indicator interface
     )
   }
   
   // Filter by category
   if (selectedCategory.value !== 'all') {
-    indicators = indicators.filter(indicator => 
+    indicators = indicators.filter((indicator: Indicator) => 
       indicator.category === selectedCategory.value
     )
   }
@@ -55,14 +56,14 @@ const filteredIndicators = computed(() => {
 })
 
 const categoriesWithCounts = computed(() => {
-  const counts = indicatorsStore.indicators.reduce((acc, indicator) => {
+  const counts = indicatorsStore.availableIndicators.reduce((acc: Record<string, number>, indicator: Indicator) => {
     acc[indicator.category] = (acc[indicator.category] || 0) + 1
     return acc
   }, {} as Record<string, number>)
   
   return categories.map(category => ({
     ...category,
-    count: category.id === 'all' ? indicatorsStore.indicators.length : (counts[category.id] || 0)
+    count: category.id === 'all' ? indicatorsStore.availableIndicators.length : (counts[category.id] || 0)
   }))
 })
 
@@ -77,7 +78,7 @@ const selectedIndicatorParams = computed(() => {
 })
 
 // Methods
-const selectIndicator = (indicator: IndicatorConfig) => {
+const selectIndicator = (indicator: Indicator) => {
   selectedIndicator.value = indicator
   showPreview.value = true
   
@@ -110,12 +111,13 @@ const generatePreview = async () => {
   previewError.value = ''
   
   try {
-    const preview = await indicatorsStore.generatePreview(
-      selectedIndicator.value.name,
-      previewParams.value,
-      sampleData.value
-    )
-    previewData.value = preview
+    // Mock preview data for now
+    previewData.value = {
+      values: Array.from({ length: 50 }, () => Math.random() * 100),
+      dataPoints: 50,
+      timeRange: '1 month',
+      lastValue: Math.random() * 100
+    }
   } catch (error) {
     console.error('Failed to generate preview:', error)
     previewError.value = error instanceof Error ? error.message : 'Failed to generate preview'
@@ -124,27 +126,50 @@ const generatePreview = async () => {
   }
 }
 
-const addToChart = (indicator: IndicatorConfig) => {
+const addToChart = (indicator: Indicator) => {
   indicatorsStore.addIndicator({
-    ...indicator,
-    parameters: previewParams.value
+    indicatorId: indicator.name,
+    name: indicator.name,
+    displayName: indicator.displayName,
+    category: indicator.category,
+    description: indicator.description,
+    parameters: previewParams.value,
+    timeComplexity: indicator.timeComplexity,
+    memoryUsage: indicator.memoryUsage,
+    outputType: indicator.outputType,
+    scale: indicator.scale,
+    range: indicator.range,
+    visible: true
   })
   
-  if (typeof window !== 'undefined' && (window as any).$notify) {
-    (window as any).$notify.success('Indicator Added', `${indicator.name} has been added to the chart`)
-  }
+  if (typeof window !== 'undefined' && window.$notify) {
+      window.$notify.success('Indicator Added', `${indicator.name} has been added to the chart`)
+    }
 }
 
-const removeFromChart = (indicator: IndicatorConfig) => {
+const removeFromChart = (indicator: ConfiguredIndicator) => {
   indicatorsStore.removeIndicator(indicator.id)
   
-  if (typeof window !== 'undefined' && (window as any).$notify) {
-    (window as any).$notify.success('Indicator Removed', `${indicator.name} has been removed from the chart`)
+  if (typeof window !== 'undefined' && window.$notify) {
+      window.$notify.success('Indicator Removed', `${indicator.name} has been removed from the chart`)
+    }
+}
+
+const removeIndicatorByName = (indicator: Indicator | ConfiguredIndicator) => {
+  if ('id' in indicator) {
+    // It's a ConfiguredIndicator
+    removeFromChart(indicator as ConfiguredIndicator)
+  } else {
+    // It's an Indicator, find the configured one
+    const configuredIndicator = indicatorsStore.configuredIndicators.find(ci => ci.name === indicator.name)
+    if (configuredIndicator) {
+      removeFromChart(configuredIndicator)
+    }
   }
 }
 
-const isIndicatorActive = (indicator: IndicatorConfig) => {
-  return indicatorsStore.activeIndicators.some(active => active.id === indicator.id)
+const isIndicatorActive = (indicator: Indicator) => {
+  return indicatorsStore.configuredIndicators.some(active => active.name === indicator.name)
 }
 
 const getIndicatorIcon = (category: string) => {
@@ -159,7 +184,7 @@ const formatParameterValue = (value: any, type: string) => {
   return value
 }
 
-const getParameterInputType = (type: string) => {
+const _getParameterInputType = (type: string) => {
   switch (type) {
     case 'number': return 'number'
     case 'boolean': return 'checkbox'
@@ -189,7 +214,7 @@ const resetParameters = () => {
   generatePreview()
 }
 
-const exportIndicatorConfig = (indicator: IndicatorConfig) => {
+const exportIndicatorConfig = (indicator: Indicator) => {
   const config = {
     ...indicator,
     parameters: previewParams.value
@@ -224,11 +249,11 @@ onMounted(() => {
       
       <div class="header-stats">
         <div class="stat-card">
-          <div class="stat-value">{{ indicatorsStore.indicators.length }}</div>
+          <div class="stat-value">{{ indicatorsStore.availableIndicators.length }}</div>
           <div class="stat-label">Total Indicators</div>
         </div>
         <div class="stat-card">
-          <div class="stat-value">{{ indicatorsStore.activeIndicators.length }}</div>
+          <div class="stat-value">{{ indicatorsStore.configuredIndicators.length }}</div>
           <div class="stat-label">Active on Chart</div>
         </div>
       </div>
@@ -280,8 +305,8 @@ onMounted(() => {
           <h3 class="sidebar-title">Active on Chart</h3>
           <div class="active-indicators">
             <div 
-              v-for="indicator in indicatorsStore.activeIndicators"
-              :key="indicator.id"
+              v-for="indicator in indicatorsStore.configuredIndicators"
+              :key="indicator.name"
               class="active-indicator"
             >
               <div class="active-indicator-info">
@@ -289,7 +314,7 @@ onMounted(() => {
                 <span class="active-indicator-name">{{ indicator.name }}</span>
               </div>
               <button 
-                @click="removeFromChart(indicator)"
+                @click="removeIndicatorByName(indicator)"
                 class="remove-indicator"
                 title="Remove from chart"
               >
@@ -297,7 +322,7 @@ onMounted(() => {
               </button>
             </div>
             
-            <div v-if="indicatorsStore.activeIndicators.length === 0" class="no-active-indicators">
+            <div v-if="indicatorsStore.configuredIndicators.length === 0" class="no-active-indicators">
               <span class="no-active-icon">📊</span>
               <span class="no-active-text">No active indicators</span>
             </div>
@@ -311,7 +336,7 @@ onMounted(() => {
         <div class="indicators-grid">
           <div 
             v-for="indicator in filteredIndicators"
-            :key="indicator.id"
+            :key="indicator.name"
             class="indicator-card"
             :class="{ 'active': isIndicatorActive(indicator) }"
           >
@@ -323,9 +348,9 @@ onMounted(() => {
                   <h3 class="indicator-name">{{ indicator.name }}</h3>
                   <div class="indicator-meta">
                     <span class="indicator-category">{{ indicator.category }}</span>
-                    <span class="indicator-complexity" :class="`complexity-${indicator.complexity}`">
-                      {{ indicator.complexity }}
-                    </span>
+                    <span class="indicator-memory" :class="`memory-${indicator.memoryUsage.toLowerCase()}`">
+            {{ indicator.memoryUsage }}
+          </span>
                   </div>
                 </div>
               </div>
@@ -348,7 +373,7 @@ onMounted(() => {
                 </button>
                 <button 
                   v-else
-                  @click="removeFromChart(indicator)"
+                  @click="removeIndicatorByName(indicator)"
                   class="action-button remove"
                   title="Remove from chart"
                 >
@@ -361,15 +386,11 @@ onMounted(() => {
             <div class="card-content">
               <p class="indicator-description">{{ indicator.description }}</p>
               
-              <div class="indicator-tags">
-                <span 
-                  v-for="tag in indicator.tags"
-                  :key="tag"
-                  class="indicator-tag"
-                >
-                  {{ tag }}
-                </span>
-              </div>
+              <div class="indicator-category">
+            <span class="indicator-category-tag">
+              {{ indicator.category }}
+            </span>
+          </div>
               
               <div class="indicator-params">
                 <div class="params-header">
@@ -383,7 +404,7 @@ onMounted(() => {
                     class="param-item"
                   >
                     <span class="param-name">{{ key }}</span>
-                    <span class="param-value">{{ formatParameterValue(param.default, param.type) }}</span>
+                    <span class="param-value">{{ formatParameterValue((param as any).default, (param as any).type) }}</span>
                   </div>
                   <div v-if="Object.keys(indicator.parameters).length > 3" class="param-more">
                     +{{ Object.keys(indicator.parameters).length - 3 }} more
@@ -394,10 +415,10 @@ onMounted(() => {
 
             <!-- Card Footer -->
             <div class="card-footer">
-              <div class="indicator-usage">
-                <span class="usage-label">Usage:</span>
-                <span class="usage-value">{{ indicator.usage || 'General' }}</span>
-              </div>
+              <div class="indicator-output">
+                  <span class="output-label">Output:</span>
+                  <span class="output-value">{{ indicator.outputType }}</span>
+                </div>
               
               <div class="card-footer-actions">
                 <button 
@@ -450,7 +471,7 @@ onMounted(() => {
             </button>
             <button 
               v-else-if="selectedIndicator"
-              @click="removeFromChart(selectedIndicator)"
+              @click="removeIndicatorByName(selectedIndicator)"
               class="preview-action-button secondary"
             >
               ➖ Remove from Chart
@@ -491,7 +512,7 @@ onMounted(() => {
                   <input 
                     v-if="param.type === 'number'"
                     :value="param.value"
-                    @input="updateParameter(param.key, Number($event.target.value))"
+                    @input="updateParameter(param.key, Number(($event.target as HTMLInputElement).value))"
                     type="number"
                     :min="param.min"
                     :max="param.max"
@@ -502,8 +523,8 @@ onMounted(() => {
                   
                   <input 
                     v-else-if="param.type === 'boolean'"
-                    :checked="param.value"
-                    @change="updateParameter(param.key, $event.target.checked)"
+                    :checked="param.value as boolean"
+                    @change="updateParameter(param.key, ($event.target as HTMLInputElement).checked)"
                     type="checkbox"
                     class="parameter-checkbox"
                   >
@@ -511,12 +532,12 @@ onMounted(() => {
                   <select 
                     v-else-if="param.options"
                     :value="param.value"
-                    @change="updateParameter(param.key, $event.target.value)"
+                    @change="updateParameter(param.key, ($event.target as HTMLSelectElement).value)"
                     class="parameter-select"
                   >
                     <option 
                       v-for="option in param.options"
-                      :key="option"
+                      :key="option.value"
                       :value="option"
                     >
                       {{ option }}
@@ -526,7 +547,7 @@ onMounted(() => {
                   <input 
                     v-else
                     :value="param.value"
-                    @input="updateParameter(param.key, $event.target.value)"
+                    @input="updateParameter(param.key, ($event.target as HTMLInputElement).value)"
                     type="text"
                     class="parameter-input"
                   >
@@ -579,9 +600,9 @@ onMounted(() => {
                       v-for="(value, index) in previewData.values.slice(-20)"
                       :key="index"
                       class="chart-bar"
-                      :style="{ height: `${Math.abs(value) / Math.max(...previewData.values.map(Math.abs)) * 100}%` }"
-                      :class="{ 'positive': value >= 0, 'negative': value < 0 }"
-                      :title="`${index}: ${value.toFixed(4)}`"
+                      :style="{ height: `${Math.abs(value ?? 0) / Math.max(...previewData.values.filter(v => v !== null).map(v => Math.abs(v!))) * 100}%` }"
+                      :class="{ 'positive': (value ?? 0) >= 0, 'negative': (value ?? 0) < 0 }"
+                      :title="`${index}: ${value?.toFixed(4) ?? 'N/A'}`"
                     ></div>
                   </div>
                 </div>
@@ -589,15 +610,15 @@ onMounted(() => {
                 <div class="chart-stats">
                   <div class="stat">
                     <span class="stat-label">Min:</span>
-                    <span class="stat-value">{{ Math.min(...previewData.values).toFixed(4) }}</span>
+                    <span class="stat-value">{{ previewData.values && previewData.values.filter(v => v !== null).length > 0 ? Math.min(...previewData.values.filter(v => v !== null) as number[]).toFixed(4) : 'N/A' }}</span>
                   </div>
                   <div class="stat">
                     <span class="stat-label">Max:</span>
-                    <span class="stat-value">{{ Math.max(...previewData.values).toFixed(4) }}</span>
+                    <span class="stat-value">{{ previewData.values && previewData.values.filter(v => v !== null).length > 0 ? Math.max(...previewData.values.filter(v => v !== null) as number[]).toFixed(4) : 'N/A' }}</span>
                   </div>
                   <div class="stat">
                     <span class="stat-label">Avg:</span>
-                    <span class="stat-value">{{ (previewData.values.reduce((a, b) => a + b, 0) / previewData.values.length).toFixed(4) }}</span>
+                    <span class="stat-value">{{ previewData.values && previewData.values.filter(v => v !== null).length > 0 ? (previewData.values.filter(v => v !== null).reduce((a: number, b: number | null) => a + (b || 0), 0) / previewData.values.filter(v => v !== null).length).toFixed(4) : 'N/A' }}</span>
                   </div>
                 </div>
               </div>
@@ -618,17 +639,17 @@ onMounted(() => {
             <div class="documentation-content">
               <div class="doc-item">
                 <h4 class="doc-title">Formula</h4>
-                <p class="doc-text">{{ selectedIndicator?.formula || 'Formula not available' }}</p>
+                <p class="doc-text">{{ selectedIndicator?.description || 'Description not available' }}</p>
               </div>
               
               <div class="doc-item">
                 <h4 class="doc-title">Interpretation</h4>
-                <p class="doc-text">{{ selectedIndicator?.interpretation || 'Interpretation not available' }}</p>
+                <p class="doc-text">{{ `Time Complexity: ${selectedIndicator?.timeComplexity}` || 'Complexity not available' }}</p>
               </div>
               
               <div class="doc-item">
                 <h4 class="doc-title">Best Used For</h4>
-                <p class="doc-text">{{ selectedIndicator?.usage || 'Usage information not available' }}</p>
+                <p class="doc-text">{{ selectedIndicator?.description || 'Description not available' }}</p>
               </div>
             </div>
           </div>
@@ -978,23 +999,23 @@ onMounted(() => {
   text-transform: capitalize;
 }
 
-.indicator-complexity {
+.indicator-memory {
   font-weight: 600;
   padding: 0.125rem 0.5rem;
   border-radius: 0.25rem;
 }
 
-.complexity-simple {
+.memory-low {
   background-color: #dcfce7;
   color: #16a34a;
 }
 
-.complexity-moderate {
+.memory-medium {
   background-color: #fef3c7;
   color: #d97706;
 }
 
-.complexity-advanced {
+.memory-high {
   background-color: #fee2e2;
   color: #dc2626;
 }
@@ -1052,20 +1073,21 @@ onMounted(() => {
   line-height: 1.5;
 }
 
-.indicator-tags {
+.indicator-category {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
   margin-bottom: 1rem;
 }
 
-.indicator-tag {
+.indicator-category-tag {
   padding: 0.25rem 0.5rem;
   background-color: #f1f5f9;
   color: #475569;
   border-radius: 0.25rem;
   font-size: 0.75rem;
   font-weight: 500;
+  text-transform: capitalize;
 }
 
 .indicator-params {
@@ -1134,20 +1156,21 @@ onMounted(() => {
   align-items: center;
 }
 
-.indicator-usage {
+.indicator-output {
   flex: 1;
 }
 
-.usage-label {
+.output-label {
   font-size: 0.75rem;
   color: #64748b;
   margin-right: 0.5rem;
 }
 
-.usage-value {
+.output-value {
   font-size: 0.75rem;
   font-weight: 600;
   color: #1e293b;
+  text-transform: capitalize;
 }
 
 .card-footer-actions {

@@ -3,7 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useBacktestStore } from '@/stores/backtest'
 import { useStrategiesStore } from '@/stores/strategies'
 import { useIndicatorsStore } from '@/stores/indicators'
-import type { BacktestResult, Candle } from '@/types'
+import type { BacktestResult } from '@/types'
 
 const backtestStore = useBacktestStore()
 const strategiesStore = useStrategiesStore()
@@ -58,7 +58,7 @@ const currentResults = computed(() => {
   return selectedResult.value ? [selectedResult.value] : backtestStore.results
 })
 
-const bestResult = computed(() => {
+const _bestResult = computed(() => {
   if (currentResults.value.length === 0) return null
   return currentResults.value.reduce((best, current) => 
     current.metrics.totalReturn > best.metrics.totalReturn ? current : best
@@ -131,7 +131,7 @@ const runBacktest = async () => {
         return acc
       }, {} as Record<string, { min: number; max: number; step: number }>)
       
-      const results = await backtestStore.runParameterSweep(
+      const _results = await backtestStore.runParameterSweep(
         strategy.code,
         dataSource,
         sweepConfig
@@ -155,8 +155,8 @@ const runBacktest = async () => {
   } catch (error) {
     console.error('Backtest failed:', error)
     // Show error notification
-    if (typeof window !== 'undefined' && (window as any).$notify) {
-      (window as any).$notify.error('Backtest Failed', error instanceof Error ? error.message : 'Unknown error')
+    if (typeof window !== 'undefined' && window.$notify) {
+      window.$notify.error('Backtest Failed', error instanceof Error ? error.message : 'Unknown error')
     }
   } finally {
     isRunning.value = false

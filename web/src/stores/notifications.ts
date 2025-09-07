@@ -135,7 +135,7 @@ export const useNotificationStore = defineStore('notifications', () => {
     )
   }
 
-  function notifyBacktestCompleted(backtestId: string, strategyName: string, performance: any): string {
+  function notifyBacktestCompleted(backtestId: string, strategyName: string, performance: { totalReturn: number }): string {
     const isProfit = performance.totalReturn > 0
     return add({
       type: isProfit ? 'success' : 'warning',
@@ -189,6 +189,7 @@ export const useNotificationStore = defineStore('notifications', () => {
     
     // Actions
     add,
+    addNotification: add, // Alias for compatibility
     remove,
     clear,
     clearByType,

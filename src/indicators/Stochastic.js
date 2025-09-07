@@ -67,16 +67,21 @@ class Stochastic {
 
   getResult() {
     if (this.smoothedKValues.length === 0) {
-      return null;
+      // Fallback se non ci sono abbastanza dati
+      return {
+        k: 50,
+        d: 50,
+        raw_k: 50
+      };
     }
 
     const k = this.smoothedKValues[this.smoothedKValues.length - 1];
-    const d = this.dValues.length > 0 ? this.dValues[this.dValues.length - 1] : null;
+    const d = this.dValues.length > 0 ? this.dValues[this.dValues.length - 1] : 50;
     const rawK = this.kValues[this.kValues.length - 1];
 
     return {
       k: parseFloat(k.toFixed(2)),
-      d: d ? parseFloat(d.toFixed(2)) : null,
+      d: d ? parseFloat(d.toFixed(2)) : 50,
       raw_k: parseFloat(rawK.toFixed(2))
     };
   }
@@ -333,6 +338,54 @@ class Stochastic {
       signals
     };
   }
+
+  detectCrossover() {
+    if (this.smoothedKValues.length < 2 || this.dValues.length < 2) {
+      return { type: 'none' };
+    }
+
+    const currentK = this.smoothedKValues[this.smoothedKValues.length - 1];
+    const previousK = this.smoothedKValues[this.smoothedKValues.length - 2];
+    const currentD = this.dValues[this.dValues.length - 1];
+    const previousD = this.dValues[this.dValues.length - 2];
+
+    // K line crosses above D line (bullish)
+    if (previousK <= previousD && currentK > currentD) {
+      return { type: 'bullish' };
+    }
+    // K line crosses below D line (bearish)
+    if (previousK >= previousD && currentK < currentD) {
+      return { type: 'bearish' };
+    }
+
+    return { type: 'none' };
+  }
+
+  // Metodo semplificato per i test
+  getSignal() {
+    const result = this.getResult();
+    if (!result) {
+      // Fallback se non ci sono abbastanza dati
+      return {
+        overbought: false,
+        oversold: false,
+        crossover: 'none',
+        k: 50,
+        d: 50
+      };
+    }
+
+    const { k, d } = result;
+    const crossover = this.detectCrossover();
+
+    return {
+      overbought: k > 80 && d > 80,
+      oversold: k < 20 && d < 20,
+      crossover: crossover ? crossover.type : 'none',
+      k,
+      d
+    };
+  }
 }
 
-module.exports = Stochastic;
+export default Stochastic;

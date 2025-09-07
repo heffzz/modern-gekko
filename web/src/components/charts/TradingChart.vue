@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, computed, nextTick } from 'vue'
-import { createChart, type IChartApi, type ISeriesApi, type CandlestickData, type LineData, type Time } from 'lightweight-charts'
+import { createChart, type IChartApi, type ISeriesApi, type CandlestickData, type LineData, type Time, ColorType } from 'lightweight-charts'
 import type { Candle, Trade, Indicator, IndicatorValue } from '@/types'
 
 interface Props {
   candles: Candle[]
   trades?: Trade[]
   indicators?: Indicator[]
+  width?: number
   height?: number
   showVolume?: boolean
   showGrid?: boolean
@@ -18,6 +19,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  width: 800,
   height: 400,
   showVolume: true,
   showGrid: true,
@@ -62,7 +64,7 @@ const isDarkMode = computed(() => {
 const chartOptions = computed(() => ({
   layout: {
     background: {
-      type: 'solid' as const,
+      type: ColorType.Solid,
       color: isDarkMode.value ? '#0f172a' : '#ffffff'
     },
     textColor: isDarkMode.value ? '#e2e8f0' : '#1e293b'
@@ -188,8 +190,8 @@ const getIndicatorColor = (indicator: Indicator, index: number = 0): string => {
     '#6366f1'  // Indigo
   ]
   
-  if (indicator.color) {
-    return indicator.color
+  if ((indicator as any).color) {
+    return (indicator as any).color
   }
   
   return colors[index % colors.length]
@@ -206,16 +208,16 @@ const initChart = async () => {
     // Create chart instance
     chart = createChart(chartContainer.value, {
       ...chartOptions.value,
-      width: chartContainer.value.clientWidth,
+      width: props.width,
       height: props.height
-    })
+    } as any)
     
     // Create candlestick series
-    candlestickSeries = chart.addCandlestickSeries(candlestickOptions.value)
+    candlestickSeries = (chart as any).addCandlestickSeries(candlestickOptions.value)
     
     // Create volume series if enabled
     if (props.showVolume) {
-      volumeSeries = chart.addHistogramSeries({
+      volumeSeries = (chart as any).addHistogramSeries({
         ...volumeOptions.value,
         priceScaleId: 'volume'
       })
@@ -323,24 +325,24 @@ const updateIndicators = async () => {
   
   // Add new indicator series
   props.indicators.forEach((indicator, index) => {
-    if (indicator.values && indicator.values.length > 0) {
-      const lineData = processIndicatorData(indicator, indicator.values)
+    if ((indicator as any).values && (indicator as any).values.length > 0) {
+      const lineData = processIndicatorData(indicator, (indicator as any).values)
       
       if (lineData.length > 0) {
-        const series = chart!.addLineSeries({
+        const series = (chart as any)!.addSeries('Line', {
           color: getIndicatorColor(indicator, index),
           lineWidth: 2,
           title: indicator.name,
-          priceScaleId: indicator.overlay ? 'right' : `indicator-${indicator.id}`,
-          visible: indicator.visible !== false
+          priceScaleId: (indicator as any).overlay ? 'right' : `indicator-${(indicator as any).id}`,
+          visible: (indicator as any).visible !== false
         })
         
         series.setData(lineData)
-        indicatorSeries.set(indicator.id, series)
+        indicatorSeries.set((indicator as any).id, series as any)
         
         // Create separate price scale for non-overlay indicators
-        if (!indicator.overlay) {
-          chart!.priceScale(`indicator-${indicator.id}`).applyOptions({
+        if (!(indicator as any).overlay) {
+          chart!.priceScale(`indicator-${(indicator as any).id}`).applyOptions({
             scaleMargins: {
               top: 0.8,
               bottom: 0
@@ -372,7 +374,7 @@ const updateTrades = async () => {
   }))
   
   if (markers.length > 0 && candlestickSeries) {
-    candlestickSeries.setMarkers(markers)
+    (candlestickSeries as any).setMarkers(markers)
   }
 }
 
@@ -464,7 +466,7 @@ watch(() => props.trades, async () => {
 
 watch(() => props.theme, async () => {
   if (chart) {
-    chart.applyOptions(chartOptions.value)
+    chart.applyOptions(chartOptions.value as any)
   }
 })
 

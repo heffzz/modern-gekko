@@ -107,6 +107,16 @@ class ADX {
     }
 
     const latest = this.adxValues[this.adxValues.length - 1];
+    return parseFloat(latest.toFixed(2));
+  }
+
+  // Metodo per ottenere tutti i valori
+  getFullResult() {
+    if (this.adxValues.length === 0) {
+      return null;
+    }
+
+    const latest = this.adxValues[this.adxValues.length - 1];
     const plusDI = this.smoothedPlusDM / this.smoothedTR * 100;
     const minusDI = this.smoothedMinusDM / this.smoothedTR * 100;
     const dx = this.dxValues[this.dxValues.length - 1];
@@ -121,7 +131,7 @@ class ADX {
 
   // Interpretazione del segnale
   getSignal() {
-    const result = this.getResult();
+    const result = this.getFullResult();
     if (!result) return null;
 
     const { adx, plusDI, minusDI } = result;
@@ -138,6 +148,24 @@ class ADX {
       return { trend: 'weak_trend', strength: adx };
     }
   }
+
+  // Metodo per ottenere la forza del trend
+  getTrendStrength() {
+    const result = this.getResult();
+    if (!result) return 'weak';
+
+    const { adx } = result;
+
+    if (adx > 50) {
+      return 'very_strong';
+    } else if (adx > 25) {
+      return 'strong';
+    } else if (adx > 20) {
+      return 'moderate';
+    } else {
+      return 'weak';
+    }
+  }
 }
 
-module.exports = ADX;
+export default ADX;

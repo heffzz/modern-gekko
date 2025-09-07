@@ -499,6 +499,10 @@ export const useIndicatorsStore = defineStore('indicators', () => {
     ]
   }
   
+  const getIndicatorConfig = (indicatorName: string): Indicator | null => {
+    return availableIndicators.value.find(indicator => indicator.name === indicatorName) || null
+  }
+  
   // Initialize
   const initialize = async () => {
     await loadAvailableIndicators()
@@ -526,6 +530,7 @@ export const useIndicatorsStore = defineStore('indicators', () => {
     initialize,
     loadAvailableIndicators,
     fetchIndicators,
+    getIndicatorConfig,
     addIndicator,
     removeIndicator,
     updateIndicator,

@@ -150,8 +150,9 @@ export const useStrategiesStore = defineStore('strategies', () => {
     return {
       name: 'New Strategy',
       code: getDefaultStrategyCode(),
+      type: 'custom' as const,
+      category: 'custom' as const,
       config: {
-        name: 'New Strategy',
         description: 'A new trading strategy',
         parameters: {},
         indicators: [],

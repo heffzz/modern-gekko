@@ -113,14 +113,11 @@ const showInfo = (title: string, message?: string, options?: Partial<Notificatio
 
 // Expose methods globally
 if (typeof window !== 'undefined') {
-  (window as any).$notify = {
+  window.$notify = {
     success: showSuccess,
     error: showError,
     warning: showWarning,
-    info: showInfo,
-    add: addNotification,
-    remove: removeNotification,
-    clear: clearAll
+    info: showInfo
   }
 }
 

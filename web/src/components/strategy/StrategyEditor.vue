@@ -287,11 +287,12 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, computed, nextTick } from 'vue'
-import * as monaco from 'monaco-editor'
+import loader from '@monaco-editor/loader'
+import type * as Monaco from 'monaco-editor'
 import { useStrategyStore } from '@/stores/strategy'
 import { useIndicatorsStore } from '@/stores/indicators'
 import { useNotificationStore } from '@/stores/notifications'
-import type { Strategy, StrategyTemplate, StrategyValidationResult } from '@/types/strategy'
+import type { Strategy, StrategyTemplate as _StrategyTemplate, StrategyValidationResult, StrategyCategory } from '@/types/strategy'
 
 interface Props {
   strategy?: Strategy | null
@@ -313,7 +314,8 @@ const notificationStore = useNotificationStore()
 
 // Refs
 const editorContainer = ref<HTMLElement>()
-let editor: monaco.editor.IStandaloneCodeEditor | null = null
+let editor: Monaco.editor.IStandaloneCodeEditor | null = null
+let monaco: typeof Monaco | null = null
 
 // State
 const editorContent = ref('')
@@ -353,6 +355,9 @@ let autoSaveTimer: NodeJS.Timeout | null = null
 // Monaco Editor setup
 const initializeEditor = async () => {
   if (!editorContainer.value) return
+  
+  // Load Monaco Editor
+  monaco = await loader.init()
   
   // Configure Monaco for JavaScript/TypeScript
   monaco.languages.typescript.javascriptDefaults.setCompilerOptions({
@@ -421,7 +426,7 @@ const initializeEditor = async () => {
     renderWhitespace: 'selection',
     lineNumbers: 'on',
     folding: true,
-    bracketMatching: 'always',
+    matchBrackets: 'always',
     autoIndent: 'full',
     formatOnPaste: true,
     formatOnType: true,
@@ -540,7 +545,7 @@ const saveStrategyAs = async () => {
       description: saveAsDescription.value,
       code: editorContent.value,
       type: 'custom',
-      category: saveAsCategory.value
+      category: saveAsCategory.value as StrategyCategory
     })
     
     currentStrategy.value = strategy
@@ -607,7 +612,9 @@ const validateStrategy = async () => {
 // Editor settings
 const updateEditorTheme = () => {
   if (editor) {
+    if (monaco) {
     monaco.editor.setTheme(editorTheme.value)
+  }
   }
 }
 
@@ -653,7 +660,7 @@ if (${indicator.name}.result !== undefined) {
 `
   
   editor.executeEdits('insert-indicator', [{
-    range: new monaco.Range(position.lineNumber, position.column, position.lineNumber, position.column),
+    range: monaco ? new monaco.Range(position.lineNumber, position.column, position.lineNumber, position.column) : { startLineNumber: position.lineNumber, startColumn: position.column, endLineNumber: position.lineNumber, endColumn: position.column },
     text: indicatorCode
   }])
   

@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useNotificationStore } from '@/stores/notifications'
+import type { LogEntry } from '@/types'
 
 const notificationStore = useNotificationStore()
 
-const logs = ref([])
+const logs = ref<LogEntry[]>([])
 const isLoading = ref(false)
 const selectedLevel = ref('all')
 
@@ -26,22 +27,22 @@ const loadLogs = async () => {
     // Mock data for now
     logs.value = [
       {
-        id: 1,
-        timestamp: new Date().toISOString(),
+        id: '1',
+        timestamp: Date.now(),
         level: 'info',
         message: 'Application started successfully',
         source: 'system'
       },
       {
-        id: 2,
-        timestamp: new Date(Date.now() - 60000).toISOString(),
+        id: '2',
+        timestamp: Date.now() - 60000,
         level: 'info',
         message: 'Connected to mock exchange',
         source: 'exchange'
       }
     ]
-  } catch (error) {
-    notificationStore.addNotification({
+  } catch {
+    notificationStore.add({
       type: 'error',
       title: 'Error',
       message: 'Failed to load logs'
@@ -51,12 +52,12 @@ const loadLogs = async () => {
   }
 }
 
-const getLevelColor = (level: string) => {
+const _getLevelColor = (level: string) => {
   const levelConfig = logLevels.find(l => l.value === level)
   return levelConfig?.color || 'gray'
 }
 
-const formatTimestamp = (timestamp: string) => {
+const formatTimestamp = (timestamp: number) => {
   return new Date(timestamp).toLocaleString()
 }
 </script>

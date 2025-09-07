@@ -71,9 +71,9 @@ class BollingerBands {
     const percentB = ((price - lowerBand) / (upperBand - lowerBand)) * 100;
 
     return {
-      upperBand: parseFloat(upperBand.toFixed(4)),
-      middleBand: parseFloat(sma.toFixed(4)),
-      lowerBand: parseFloat(lowerBand.toFixed(4)),
+      upper: parseFloat(upperBand.toFixed(4)),
+      middle: parseFloat(sma.toFixed(4)),
+      lower: parseFloat(lowerBand.toFixed(4)),
       bandwidth: parseFloat(bandwidth.toFixed(2)),
       percentB: parseFloat(percentB.toFixed(2)),
       price: parseFloat(price.toFixed(4))
@@ -85,7 +85,7 @@ class BollingerBands {
     const result = this.getResult();
     if (!result) return null;
 
-    const { price, upperBand, lowerBand, percentB, bandwidth } = result;
+    const { price, upper, lower, percentB, bandwidth } = result;
 
     let signal = 'neutral';
     let strength = 'weak';
@@ -205,6 +205,31 @@ class BollingerBands {
 
     return { signal: 'wait', reason: 'No clear breakout signal' };
   }
+
+  // Metodo generale per ottenere segnali
+  getSignal(currentPrice) {
+    const result = this.getResult();
+    if (!result) return null;
+
+    const { price, upper, lower, percentB, bandwidth } = result;
+    const bandwidthSignal = this.getBandwidthSignal();
+
+    let signal = 'neutral';
+    if (price > upper) {
+      signal = 'sell';
+    } else if (price < lower) {
+      signal = 'buy';
+    }
+
+    return {
+      signal,
+      position: percentB > 80 ? 'overbought' : percentB < 20 ? 'oversold' : 'neutral',
+      squeeze: bandwidthSignal.type === 'squeeze' || bandwidthSignal.type === 'extreme_squeeze',
+      expansion: bandwidthSignal.type === 'expansion' || bandwidthSignal.type === 'extreme_expansion',
+      percentB,
+      bandwidth
+    };
+  }
 }
 
-module.exports = BollingerBands;
+export default BollingerBands;

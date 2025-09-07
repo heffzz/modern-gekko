@@ -35,6 +35,8 @@ export interface ConfiguredIndicator extends Omit<Indicator, 'parameters'> {
   lineWidth?: number
   opacity?: number
   style?: 'solid' | 'dashed' | 'dotted'
+  values?: (number | null)[]
+  overlay?: boolean
 }
 
 // Indicator preview data

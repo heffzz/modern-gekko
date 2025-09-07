@@ -11,11 +11,13 @@ class DEMA {
     this.ema1 = null; // First EMA
     this.ema2 = null; // EMA of EMA
     this.demaValues = [];
+    this.prices = []; // Track historical prices
     this.isInitialized = false;
   }
 
   update(candle) {
     const price = candle.close;
+    this.prices.push(price);
 
     // Calculate first EMA
     if (this.ema1 === null) {
@@ -108,10 +110,31 @@ class DEMA {
   // Signal generation
   getSignal(currentPrice) {
     const dema = this.getResult();
-    if (!dema || !currentPrice) return null;
+    if (!dema || !currentPrice) {
+      // Fallback se non ci sono abbastanza dati
+      return {
+        signal: 'neutral',
+        strength: 'weak',
+        reason: 'insufficient_data',
+        priceDistance: 0,
+        demaValue: currentPrice || 0,
+        trend: 'neutral',
+        crossover: 'none'
+      };
+    }
 
     const trend = this.getTrend();
-    if (!trend) return null;
+    if (!trend) {
+      return {
+        signal: 'neutral',
+        strength: 'weak',
+        reason: 'insufficient_trend_data',
+        priceDistance: 0,
+        demaValue: dema,
+        trend: 'neutral',
+        crossover: 'none'
+      };
+    }
 
     let signal = 'neutral';
     let strength = 'weak';
@@ -138,17 +161,43 @@ class DEMA {
       reason = 'Price below DEMA but DEMA still rising - potential reversal';
     }
 
+    // Detect crossover
+    const crossover = this.detectCrossover(currentPrice);
+
     return {
       signal,
       strength,
       reason,
       priceDistance: parseFloat(priceDistance.toFixed(2)),
       demaValue: dema,
-      trend: trend.trend
+      trend: trend.trend,
+      crossover
     };
   }
 
-  // Crossover signals
+  // Detect price crossover with DEMA
+  detectCrossover(currentPrice) {
+    if (this.prices.length < 2) return 'none';
+    
+    const currentDema = this.getResult();
+    const previousPrice = this.prices[this.prices.length - 2];
+    const previousDema = this.demaValues[this.demaValues.length - 2];
+    
+    if (!currentDema || !previousDema) return 'none';
+    
+    const currentAbove = currentPrice > currentDema;
+    const previousAbove = previousPrice > previousDema;
+    
+    if (!currentAbove && previousAbove) {
+      return 'bearish';
+    } else if (currentAbove && !previousAbove) {
+      return 'bullish';
+    }
+    
+    return 'none';
+   }
+
+   // Crossover signals
   getCrossoverSignal(currentPrice, previousPrice) {
     const currentDEMA = this.getResult();
     const previousDEMA = this.demaValues.length > 1 ?
@@ -263,4 +312,4 @@ class DEMA {
   }
 }
 
-module.exports = DEMA;
+export default DEMA;

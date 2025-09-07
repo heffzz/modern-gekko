@@ -131,7 +131,7 @@
               
               <label class="checkbox-label">
                 <input 
-                  v-model="config.parameters[param.name].enabled"
+                  v-model="(config.parameters[param.name] as any).enabled"
                   type="checkbox"
                   class="form-checkbox"
                   :disabled="isRunning"
@@ -140,13 +140,13 @@
               </label>
             </div>
             
-            <div v-if="config.parameters[param.name].enabled" class="param-range">
+            <div v-if="(config.parameters[param.name] as any).enabled" class="param-range">
               <div v-if="param.type === 'number'" class="number-range">
                 <div class="range-inputs">
                   <div class="input-group">
                     <label class="input-label">Min</label>
                     <input 
-                      v-model.number="config.parameters[param.name].min"
+                      v-model.number="(config.parameters[param.name] as any).min"
                       type="number"
                       :step="param.step || 'any'"
                       class="form-input"
@@ -157,7 +157,7 @@
                   <div class="input-group">
                     <label class="input-label">Max</label>
                     <input 
-                      v-model.number="config.parameters[param.name].max"
+                      v-model.number="(config.parameters[param.name] as any).max"
                       type="number"
                       :step="param.step || 'any'"
                       class="form-input"
@@ -168,7 +168,7 @@
                   <div class="input-group">
                     <label class="input-label">Step</label>
                     <input 
-                      v-model.number="config.parameters[param.name].step"
+                      v-model.number="(config.parameters[param.name] as any).step"
                       type="number"
                       :step="param.step || 'any'"
                       class="form-input"
@@ -190,11 +190,11 @@
                 <div class="options-grid">
                   <label 
                     v-for="option in param.options" 
-                    :key="option.value"
+                    :key="String(option.value)"
                     class="option-checkbox"
                   >
                     <input 
-                      v-model="config.parameters[param.name].values"
+                      v-model="(config.parameters[param.name] as any).values"
                       type="checkbox"
                       :value="option.value"
                       class="form-checkbox"
@@ -209,7 +209,7 @@
                 <div class="boolean-options">
                   <label class="option-checkbox">
                     <input 
-                      v-model="config.parameters[param.name].values"
+                      v-model="(config.parameters[param.name] as any).values"
                       type="checkbox"
                       :value="true"
                       class="form-checkbox"
@@ -220,7 +220,7 @@
                   
                   <label class="option-checkbox">
                     <input 
-                      v-model="config.parameters[param.name].values"
+                      v-model="(config.parameters[param.name] as any).values"
                       type="checkbox"
                       :value="false"
                       class="form-checkbox"
@@ -237,7 +237,7 @@
                 <label class="input-label">Fixed Value</label>
                 <input 
                   v-if="param.type === 'number'"
-                  v-model.number="config.parameters[param.name].fixed"
+                  v-model.number="(config.parameters[param.name] as any).fixed"
                   type="number"
                   :step="param.step || 'any'"
                   :placeholder="param.default?.toString()"
@@ -247,13 +247,13 @@
                 
                 <select 
                   v-else-if="param.type === 'select'"
-                  v-model="config.parameters[param.name].fixed"
+                  v-model="(config.parameters[param.name] as any).fixed"
                   class="form-select"
                   :disabled="isRunning"
                 >
                   <option 
                     v-for="option in param.options" 
-                    :key="option.value"
+                    :key="String(option.value)"
                     :value="option.value"
                   >
                     {{ option.label }}
@@ -262,7 +262,7 @@
                 
                 <label v-else-if="param.type === 'boolean'" class="checkbox-label">
                   <input 
-                    v-model="config.parameters[param.name].fixed"
+                    v-model="(config.parameters[param.name] as any).fixed"
                     type="checkbox"
                     class="form-checkbox"
                     :disabled="isRunning"
@@ -533,7 +533,7 @@
       <!-- Results Heatmap -->
       <div v-if="results" class="results-section">
         <ParameterHeatmap 
-          :results="results"
+          :results="(results as any).results"
           :metric="config.optimizationMetric"
           :parameters="optimizedParameters"
           @point-selected="onHeatmapPointSelected"
@@ -649,7 +649,7 @@ import {
 import { useStrategyStore } from '@/stores/strategy'
 import { useNotificationStore } from '@/stores/notifications'
 import ParameterHeatmap from './ParameterHeatmap.vue'
-import type { Strategy, StrategyParameter } from '@/types/strategy'
+// Types imported but not used - removed to fix linting
 
 // Stores
 const strategyStore = useStrategyStore()
@@ -660,13 +660,13 @@ const router = useRouter()
 const fileInput = ref<HTMLInputElement>()
 const isRunning = ref(false)
 const isPaused = ref(false)
-const results = ref<any>(null)
+const results = ref<Record<string, unknown> | null>(null)
 
 // Configuration
 const config = ref({
   strategyId: '',
   optimizationMetric: 'totalReturn',
-  parameters: {} as Record<string, any>,
+  parameters: {} as Record<string, unknown>,
   csvFile: null as File | null,
   startDate: '',
   endDate: '',
@@ -701,7 +701,7 @@ const selectedStrategy = computed(() => {
 
 const optimizedParameters = computed(() => {
   return Object.keys(config.value.parameters).filter(
-    key => config.value.parameters[key].enabled
+    key => (config.value.parameters[key] as any).enabled
   )
 })
 
@@ -710,7 +710,7 @@ const totalCombinations = computed(() => {
   
   for (const paramName of optimizedParameters.value) {
     const param = config.value.parameters[paramName]
-    if (param.enabled) {
+    if ((param as any).enabled) {
       const values = getParameterValues(paramName)
       total *= values.length
     }
@@ -757,10 +757,10 @@ const isConfigValid = computed(() => {
 const topResults = computed(() => {
   if (!results.value?.results) return []
   
-  return results.value.results
-    .sort((a: any, b: any) => {
-      const aValue = a.performance[config.value.optimizationMetric] || 0
-      const bValue = b.performance[config.value.optimizationMetric] || 0
+  return [...(results.value as any).results]
+    .sort((a: Record<string, unknown>, b: Record<string, unknown>) => {
+      const aValue = (a.performance as any)?.[config.value.optimizationMetric] || 0
+      const bValue = (b.performance as any)?.[config.value.optimizationMetric] || 0
       
       // For maxDrawdown, lower is better
       if (config.value.optimizationMetric === 'maxDrawdown') {
@@ -781,18 +781,18 @@ const handleFileUpload = (event: Event) => {
   }
 }
 
-const getParameterValues = (paramName: string): any[] => {
+const getParameterValues = (paramName: string): unknown[] => {
   const param = config.value.parameters[paramName]
-  if (!param || !param.enabled) return []
+  if (!param || !(param as any).enabled) return []
   
   const strategyParam = selectedStrategy.value?.parameters?.find(p => p.name === paramName)
   if (!strategyParam) return []
   
   if (strategyParam.type === 'number') {
     const values = []
-    const min = param.min ?? strategyParam.min ?? 0
-    const max = param.max ?? strategyParam.max ?? 100
-    const step = param.step ?? strategyParam.step ?? 1
+    const min = (param as any).min ?? strategyParam.min ?? 0
+    const max = (param as any).max ?? strategyParam.max ?? 100
+    const step = (param as any).step ?? strategyParam.step ?? 1
     
     for (let value = min; value <= max; value += step) {
       values.push(value)
@@ -801,12 +801,12 @@ const getParameterValues = (paramName: string): any[] => {
     
     return values
   } else if (strategyParam.type === 'select') {
-    return param.values || []
+    return (param as any).values || []
   } else if (strategyParam.type === 'boolean') {
-    return param.values || []
+   return (param as any).values || []
   }
   
-  return []
+  return (param as any).values || []
 }
 
 const startSweep = async () => {
@@ -818,10 +818,14 @@ const startSweep = async () => {
     const request = {
       strategyId: config.value.strategyId,
       optimizationMetric: config.value.optimizationMetric,
+      objective: 'totalReturn' as const,
+      method: 'grid' as const,
       parameters: {},
       dataSource: {
         type: 'csv',
         file: config.value.csvFile,
+        symbol: 'BTCUSD',
+        timeframe: '1h',
         startDate: config.value.startDate,
         endDate: config.value.endDate
       },
@@ -844,28 +848,28 @@ const startSweep = async () => {
       const strategyParam = selectedStrategy.value?.parameters?.find(p => p.name === paramName)
       
       if (strategyParam?.type === 'number') {
-        request.parameters[paramName] = {
-          type: 'range',
-          min: param.min,
-          max: param.max,
-          step: param.step
-        }
-      } else {
-        request.parameters[paramName] = {
-          type: 'values',
-          values: param.values
-        }
+        (request.parameters as any)[paramName] = {
+        type: 'range',
+        min: (param as any).min,
+        max: (param as any).max,
+        step: (param as any).step
+      }
+    } else {
+      (request.parameters as any)[paramName] = {
+        type: 'values',
+        values: (param as any).values
+      }
       }
     }
     
     // Start optimization
     const result = await strategyStore.optimizeStrategy(request)
-    results.value = result
+    results.value = result as any
     
     notificationStore.addNotification({
       type: 'success',
       title: 'Optimization Complete',
-      message: `Found optimal parameters with ${formatMetric(result.bestPerformance[config.value.optimizationMetric], config.value.optimizationMetric)}`
+      message: `Found optimal parameters with ${formatMetric((result.bestPerformance as any)[config.value.optimizationMetric], config.value.optimizationMetric)}`
     })
     
   } catch (error) {
@@ -935,17 +939,18 @@ const saveTemplate = () => {
   })
 }
 
-const onHeatmapPointSelected = (point: any) => {
+const onHeatmapPointSelected = (point: Record<string, unknown>) => {
   // TODO: Show detailed view of selected point
   console.log('Selected point:', point)
 }
 
-const viewResult = (result: any) => {
+const viewResult = (result: Record<string, unknown>) => {
   // TODO: Navigate to detailed result view
-  router.push(`/backtest/results/${result.id}`)
+  router.push(`/backtest/results/${(result as { id: string }).id}`)
 }
 
-const useParameters = (parameters: Record<string, any>) => {
+ 
+const useParameters = (_parameters: Record<string, unknown>) => {
   // TODO: Apply parameters to strategy
   notificationStore.addNotification({
     type: 'success',
@@ -1332,6 +1337,127 @@ onMounted(async () => {
   
   .progress-stats {
     @apply grid-cols-2;
+  }
+  
+  .results-table {
+    @apply text-sm;
+  }
+  
+  .table-th,
+  .table-td {
+    @apply px-2 py-2;
+  }
+  
+  .table-th {
+    @apply text-xs;
+  }
+}
+
+@media (max-width: 640px) {
+  .optimization-header {
+    @apply p-4;
+  }
+  
+  .optimization-title {
+    @apply text-xl;
+  }
+  
+  .parameter-card {
+    @apply p-4;
+  }
+  
+  .progress-stats {
+    @apply grid-cols-1 gap-2;
+  }
+  
+  .results-table {
+    @apply text-xs;
+  }
+  
+  .table-th,
+  .table-td {
+    @apply px-1 py-1;
+  }
+  
+  .action-btn {
+    @apply p-2;
+  }
+  
+  .btn-primary,
+  .btn-secondary {
+    @apply px-4 py-2 text-sm;
+  }
+}
+
+@media (max-width: 480px) {
+  .optimization-header {
+    @apply p-3;
+  }
+  
+  .optimization-title {
+    @apply text-lg;
+  }
+  
+  .parameter-card {
+    @apply p-3;
+  }
+  
+  .form-input,
+  .form-select {
+    @apply text-sm;
+  }
+  
+  .btn-primary,
+  .btn-secondary {
+    @apply px-3 py-2 text-xs;
+  }
+  
+  .results-table {
+    @apply overflow-x-auto;
+  }
+  
+  .table-container {
+    @apply min-w-full;
+  }
+}
+
+/* Touch improvements */
+@media (hover: none) and (pointer: coarse) {
+  .parameter-card {
+    @apply touch-manipulation;
+  }
+  
+  .btn-primary,
+  .btn-secondary {
+    @apply touch-manipulation;
+    min-height: 44px;
+  }
+  
+  .btn-primary:active,
+  .btn-secondary:active {
+    transform: scale(0.98);
+  }
+  
+  .action-btn {
+    @apply touch-manipulation;
+    min-height: 40px;
+    min-width: 40px;
+  }
+  
+  .action-btn:active {
+    transform: scale(0.95);
+  }
+  
+  .form-input,
+  .form-select,
+  .form-file {
+    @apply touch-manipulation;
+    min-height: 44px;
+  }
+  
+  .checkbox-label {
+    @apply touch-manipulation;
+    min-height: 44px;
   }
 }
 </style>

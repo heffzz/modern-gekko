@@ -427,6 +427,47 @@ class Ichimoku {
       confidence: ichimokuSignal.confidence
     };
   }
+
+  // Metodo per analisi cloud richiesto dal test
+  getCloudAnalysis(currentPrice) {
+    const result = this.getResult();
+    if (!result) return null;
+
+    const { senkouSpanA, senkouSpanB } = result;
+    const cloudTop = Math.max(senkouSpanA, senkouSpanB);
+    const cloudBottom = Math.min(senkouSpanA, senkouSpanB);
+    const thickness = Math.abs(senkouSpanA - senkouSpanB);
+
+    return {
+      color: senkouSpanA > senkouSpanB ? 'green' : 'red',
+      position: currentPrice > cloudTop ? 'above' : currentPrice < cloudBottom ? 'below' : 'inside',
+      thickness: parseFloat(thickness.toFixed(4))
+    };
+  }
+
+  // Metodo getSignal() richiesto dal test
+  getSignal(currentPrice) {
+    return this.getIchimokuSignal(currentPrice);
+  }
+
+  // Metodo per segnali complessi richiesto dal test
+  getComplexSignal(currentPrice) {
+    const signal = this.getSignal(currentPrice);
+    if (!signal) {
+      // Fallback se non ci sono abbastanza dati
+      return {
+        strength: 'weak',
+        trend: 'neutral',
+        signals: ['insufficient_data']
+      };
+    }
+
+    return {
+      strength: signal.strength || 'medium',
+      trend: signal.signal || 'neutral',
+      signals: signal.reasons || []
+    };
+  }
 }
 
-module.exports = Ichimoku;
+export default Ichimoku;

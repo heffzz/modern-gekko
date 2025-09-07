@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useMainStore } from '@/stores/main'
 import { useStrategiesStore } from '@/stores/strategies'
-import type { StrategyConfig, LiveTradingSession, Trade, Position } from '@/types'
+import type { Strategy, LiveTradingSession, Trade, Position } from '@/types'
 
 const mainStore = useMainStore()
 const strategiesStore = useStrategiesStore()
@@ -11,7 +11,7 @@ const strategiesStore = useStrategiesStore()
 const isLiveMode = ref(false)
 const showConfirmModal = ref(false)
 const confirmAction = ref<'start' | 'stop' | null>(null)
-const selectedStrategy = ref<StrategyConfig | null>(null)
+const selectedStrategy = ref<Strategy | null>(null)
 const selectedExchange = ref('binance')
 const selectedPair = ref('BTC/USDT')
 const initialBalance = ref(1000)
@@ -33,7 +33,7 @@ const portfolio = ref({
 })
 
 // Performance metrics
-const sessionStats = ref({
+const _sessionStats = ref({
   totalTrades: 0,
   winningTrades: 0,
   losingTrades: 0,
@@ -134,7 +134,7 @@ const startTradingSession = async () => {
       exchange: selectedExchange.value,
       pair: selectedPair.value,
       startTime: new Date().toISOString(),
-      endTime: null,
+      endTime: undefined,
       status: 'running',
       initialBalance: initialBalance.value,
       currentBalance: initialBalance.value,
@@ -158,9 +158,9 @@ const startTradingSession = async () => {
     // Connect to live data feed
     mainStore.connectWebSocket()
     
-    if (typeof window !== 'undefined' && (window as any).$notify) {
-      (window as any).$notify.success('Live Trading Started', `Trading ${selectedPair.value} with ${selectedStrategy.value.name}`)
-    }
+    if (typeof window !== 'undefined' && window.$notify) {
+        window.$notify.success('Live Trading Started', `Trading ${selectedPair.value} with ${selectedStrategy.value.name}`)
+      }
     
     // Start monitoring
     startSessionMonitoring()
@@ -169,9 +169,9 @@ const startTradingSession = async () => {
     console.error('Failed to start live trading:', error)
     isLiveMode.value = false
     
-    if (typeof window !== 'undefined' && (window as any).$notify) {
-      (window as any).$notify.error('Failed to Start', 'Could not start live trading session')
-    }
+    if (typeof window !== 'undefined' && window.$notify) {
+        window.$notify.error('Failed to Start', 'Could not start live trading session')
+      }
   }
 }
 
@@ -187,15 +187,15 @@ const stopTradingSession = async () => {
     // Close all positions
     await closeAllPositions()
     
-    if (typeof window !== 'undefined' && (window as any).$notify) {
-      (window as any).$notify.success('Live Trading Stopped', 'All positions have been closed')
-    }
+    if (typeof window !== 'undefined' && window.$notify) {
+        window.$notify.success('Live Trading Stopped', 'All positions have been closed')
+      }
     
   } catch (error) {
     console.error('Failed to stop live trading:', error)
     
-    if (typeof window !== 'undefined' && (window as any).$notify) {
-      (window as any).$notify.error('Failed to Stop', 'Could not stop live trading session')
+    if (typeof window !== 'undefined' && window.$notify) {
+      window.$notify.error('Failed to Stop', 'Could not stop live trading session')
     }
   }
 }
@@ -238,8 +238,8 @@ const emergencyStop = async () => {
   try {
     await stopTradingSession()
     
-    if (typeof window !== 'undefined' && (window as any).$notify) {
-      (window as any).$notify.warning('Emergency Stop', 'Trading session stopped immediately')
+    if (typeof window !== 'undefined' && window.$notify) {
+      window.$notify.warning('Emergency Stop', 'Trading session stopped immediately')
     }
   } catch (error) {
     console.error('Emergency stop failed:', error)
@@ -258,7 +258,7 @@ const formatPercent = (value: number) => {
   return `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`
 }
 
-const getStatusColor = (status: string) => {
+const _getStatusColor = (status: string) => {
   switch (status) {
     case 'running': return 'text-green-600'
     case 'stopped': return 'text-red-600'
