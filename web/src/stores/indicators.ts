@@ -82,7 +82,7 @@ export const useIndicatorsStore = defineStore('indicators', () => {
       isLoading.value = true
       error.value = null
       
-      const response = await fetch('http://localhost:3000/api/indicators')
+      const response = await fetch('/api/indicators')
       if (!response.ok) {
         throw new Error(`Failed to load indicators: ${response.statusText}`)
       }

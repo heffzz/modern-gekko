@@ -7,6 +7,15 @@ import type { Strategy } from '@/types'
 const router = useRouter()
 const strategiesStore = useStrategiesStore()
 
+// Initialize strategies on mount
+onMounted(async () => {
+  try {
+    await strategiesStore.fetchStrategies()
+  } catch (error) {
+    console.error('Failed to load strategies:', error)
+  }
+})
+
 // UI state
 const searchQuery = ref('')
 const selectedCategory = ref('all')
@@ -28,7 +37,7 @@ const categories = [
 
 // Computed properties
 const filteredStrategies = computed(() => {
-  let strategies = strategiesStore.strategies
+  let strategies = strategiesStore.strategies || []
   
   // Filter by search query
   if (searchQuery.value) {
@@ -81,7 +90,8 @@ const filteredStrategies = computed(() => {
 })
 
 const categoriesWithCounts = computed(() => {
-  const counts = strategiesStore.strategies.reduce((acc, strategy) => {
+  const strategies = strategiesStore.strategies || []
+  const counts = strategies.reduce((acc, strategy) => {
     const category = strategy.category || 'custom'
     acc[category] = (acc[category] || 0) + 1
     return acc
@@ -89,7 +99,7 @@ const categoriesWithCounts = computed(() => {
   
   return categories.map(category => ({
     ...category,
-    count: category.id === 'all' ? strategiesStore.strategies.length : (counts[category.id] || 0)
+    count: category.id === 'all' ? strategies.length : (counts[category.id] || 0)
   }))
 })
 

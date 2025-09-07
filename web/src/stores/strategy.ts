@@ -615,15 +615,171 @@ export const useStrategyStore = defineStore('strategy', () => {
       {
         id: 'basic-template',
         name: 'Basic Strategy Template',
-        description: 'A basic template for creating new strategies',
+        description: 'A basic template for creating new strategies with essential structure',
         category: 'custom',
         code: getSampleStrategyCode('template'),
         parameters: [],
-        author: 'Gekko',
+        author: 'Gekko Team',
         version: '1.0.0',
-        tags: ['template', 'basic'],
+        tags: ['template', 'basic', 'starter'],
         difficulty: 'beginner',
-        estimatedTime: '30 minutes'
+        estimatedTime: '30 minutes',
+        prerequisites: ['Basic JavaScript knowledge'],
+        learningObjectives: ['Understand strategy structure', 'Learn indicator usage', 'Implement basic trading logic']
+      },
+      {
+        id: 'sma-crossover',
+        name: 'SMA Crossover Strategy',
+        description: 'Classic moving average crossover strategy using fast and slow SMA',
+        category: 'trend',
+        code: getSampleStrategyCode('sma-crossover'),
+        parameters: [
+          {
+            name: 'fastPeriod',
+            type: 'number',
+            default: 10,
+            min: 5,
+            max: 50,
+            description: 'Fast SMA period'
+          },
+          {
+            name: 'slowPeriod',
+            type: 'number',
+            default: 30,
+            min: 20,
+            max: 100,
+            description: 'Slow SMA period'
+          }
+        ],
+        author: 'Gekko Team',
+        version: '1.2.0',
+        tags: ['sma', 'crossover', 'trend', 'classic'],
+        difficulty: 'beginner',
+        estimatedTime: '45 minutes',
+        prerequisites: ['Understanding of moving averages'],
+        learningObjectives: ['Implement crossover logic', 'Use multiple indicators', 'Handle trend signals']
+      },
+      {
+        id: 'rsi-momentum',
+        name: 'RSI Momentum Strategy',
+        description: 'Momentum strategy using RSI with overbought/oversold levels',
+        category: 'momentum',
+        code: getSampleStrategyCode('rsi-momentum'),
+        parameters: [
+          {
+            name: 'rsiPeriod',
+            type: 'number',
+            default: 14,
+            min: 7,
+            max: 30,
+            description: 'RSI calculation period'
+          },
+          {
+            name: 'overbought',
+            type: 'number',
+            default: 70,
+            min: 60,
+            max: 90,
+            description: 'RSI overbought level'
+          },
+          {
+            name: 'oversold',
+            type: 'number',
+            default: 30,
+            min: 10,
+            max: 40,
+            description: 'RSI oversold level'
+          }
+        ],
+        author: 'Gekko Team',
+        version: '1.1.0',
+        tags: ['rsi', 'momentum', 'oscillator'],
+        difficulty: 'intermediate',
+        estimatedTime: '1 hour',
+        prerequisites: ['Understanding of RSI indicator', 'Basic momentum concepts'],
+        learningObjectives: ['Implement RSI logic', 'Handle overbought/oversold conditions', 'Manage momentum signals']
+      },
+      {
+        id: 'bollinger-bands',
+        name: 'Bollinger Bands Mean Reversion',
+        description: 'Mean reversion strategy using Bollinger Bands for entry/exit signals',
+        category: 'mean-reversion',
+        code: getSampleStrategyCode('bollinger-bands'),
+        parameters: [
+          {
+            name: 'period',
+            type: 'number',
+            default: 20,
+            min: 10,
+            max: 50,
+            description: 'Bollinger Bands period'
+          },
+          {
+            name: 'stdDev',
+            type: 'number',
+            default: 2,
+            min: 1,
+            max: 3,
+            step: 0.1,
+            description: 'Standard deviation multiplier'
+          }
+        ],
+        author: 'Gekko Team',
+        version: '1.0.0',
+        tags: ['bollinger', 'mean-reversion', 'volatility'],
+        difficulty: 'intermediate',
+        estimatedTime: '1.5 hours',
+        prerequisites: ['Understanding of Bollinger Bands', 'Mean reversion concepts'],
+        learningObjectives: ['Implement Bollinger Bands logic', 'Handle volatility signals', 'Manage mean reversion trades']
+      },
+      {
+        id: 'macd-advanced',
+        name: 'Advanced MACD Strategy',
+        description: 'Advanced MACD strategy with multiple confirmations and risk management',
+        category: 'momentum',
+        code: getSampleStrategyCode('macd-advanced'),
+        parameters: [
+          {
+            name: 'fastEMA',
+            type: 'number',
+            default: 12,
+            min: 8,
+            max: 20,
+            description: 'Fast EMA period'
+          },
+          {
+            name: 'slowEMA',
+            type: 'number',
+            default: 26,
+            min: 20,
+            max: 40,
+            description: 'Slow EMA period'
+          },
+          {
+            name: 'signalEMA',
+            type: 'number',
+            default: 9,
+            min: 5,
+            max: 15,
+            description: 'Signal line EMA period'
+          },
+          {
+            name: 'stopLoss',
+            type: 'number',
+            default: 2,
+            min: 1,
+            max: 5,
+            step: 0.1,
+            description: 'Stop loss percentage'
+          }
+        ],
+        author: 'Gekko Team',
+        version: '2.0.0',
+        tags: ['macd', 'advanced', 'risk-management', 'momentum'],
+        difficulty: 'advanced',
+        estimatedTime: '2 hours',
+        prerequisites: ['MACD understanding', 'Risk management concepts', 'Advanced JavaScript'],
+        learningObjectives: ['Implement complex MACD logic', 'Add risk management', 'Handle multiple confirmations']
       }
     ]
   }
