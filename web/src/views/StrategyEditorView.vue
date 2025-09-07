@@ -1,62 +1,66 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useNotificationStore } from '@/stores/notifications'
+import { useRoute, useRouter } from 'vue-router'
+import StrategyEditor from '@/components/strategy/StrategyEditor.vue'
+import { useStrategyStore } from '@/stores/strategy'
+import type { Strategy } from '@/types/strategy'
 
-const notificationStore = useNotificationStore()
+const route = useRoute()
+const router = useRouter()
+const strategyStore = useStrategyStore()
 
-const strategies = ref<Record<string, unknown>[]>([])
+const currentStrategy = ref<Strategy | null>(null)
 const isLoading = ref(false)
 
-onMounted(() => {
-  loadStrategies()
+onMounted(async () => {
+  await loadStrategy()
 })
 
-const loadStrategies = async () => {
-  isLoading.value = true
-  try {
-    // Mock data for now
-    strategies.value = [
-      {
-        id: 1,
-        name: 'Sample Strategy',
-        description: 'A basic moving average crossover strategy',
-        created: new Date().toISOString()
-      }
-    ]
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  } catch (_error) {
-    notificationStore.add({
-      type: 'error',
-      title: 'Error',
-      message: 'Failed to load strategies'
-    })
-  } finally {
-    isLoading.value = false
+const loadStrategy = async () => {
+  const strategyId = route.params.id as string
+  
+  if (strategyId && strategyId !== 'new') {
+    isLoading.value = true
+    try {
+      currentStrategy.value = await strategyStore.getStrategy(strategyId)
+    } catch (error) {
+      console.error('Failed to load strategy:', error)
+      // Redirect to strategies list if strategy not found
+      router.push('/strategies')
+    } finally {
+      isLoading.value = false
+    }
   }
+}
+
+const handleStrategySaved = (strategy: Strategy) => {
+  currentStrategy.value = strategy
+  // Update URL if creating new strategy
+  if (route.params.id === 'new') {
+    router.replace(`/strategies/edit/${strategy.id}`)
+  }
+}
+
+const handleStrategyValidated = (result: any) => {
+  console.log('Strategy validation result:', result)
 }
 </script>
 
 <template>
-  <div class="p-6">
-    <div class="mb-6">
-      <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-        Strategy Editor
-      </h1>
-      <p class="text-gray-600 dark:text-gray-400">
-        Create and edit trading strategies
-      </p>
-    </div>
-
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-      <div class="text-center py-12">
-        <div class="text-6xl mb-4">⚡</div>
-        <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">
-          Strategy Editor Coming Soon
-        </h3>
-        <p class="text-gray-500 dark:text-gray-400">
-          Advanced strategy editor with Monaco IDE integration
-        </p>
+  <div class="h-full flex flex-col">
+    <div v-if="isLoading" class="flex-1 flex items-center justify-center">
+      <div class="text-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <p class="text-gray-600 dark:text-gray-400">Loading strategy...</p>
       </div>
     </div>
+    
+    <StrategyEditor
+      v-else
+      :strategy="currentStrategy"
+      @strategy-saved="handleStrategySaved"
+      @strategy-validated="handleStrategyValidated"
+      class="flex-1"
+    />
   </div>
 </template>

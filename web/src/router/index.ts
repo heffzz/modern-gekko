@@ -20,6 +20,16 @@ const router = createRouter({
       component: () => import('../views/StrategiesView.vue'),
     },
     {
+      path: '/strategies/new',
+      name: 'strategy-new',
+      component: () => import('../views/StrategyEditorView.vue'),
+    },
+    {
+      path: '/strategies/edit/:id',
+      name: 'strategy-edit',
+      component: () => import('../views/StrategyEditorView.vue'),
+    },
+    {
       path: '/strategies/editor/:id?',
       name: 'strategy-editor',
       component: () => import('../views/StrategyEditorView.vue'),

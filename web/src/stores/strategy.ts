@@ -291,6 +291,37 @@ export const useStrategyStore = defineStore('strategy', () => {
     }
   }
   
+  const getStrategy = async (id: string): Promise<Strategy> => {
+    // First check if strategy is already loaded
+    const existing = strategies.value.find(s => s.id === id)
+    if (existing) {
+      return existing
+    }
+    
+    try {
+      const response = await fetch(`/api/strategies/${id}`)
+      if (!response.ok) {
+        throw new Error(`Failed to get strategy: ${response.statusText}`)
+      }
+      
+      const strategy = await response.json()
+      
+      // Add to strategies array if not already there
+      const index = strategies.value.findIndex(s => s.id === id)
+      if (index === -1) {
+        strategies.value.push(strategy)
+      } else {
+        strategies.value[index] = strategy
+      }
+      
+      return strategy
+      
+    } catch (err) {
+      console.error('Get strategy error:', err)
+      throw err
+    }
+  }
+  
   const duplicateStrategy = async (id: string): Promise<Strategy> => {
     const original = strategies.value.find(s => s.id === id)
     if (!original) {
@@ -782,6 +813,7 @@ module.exports = strategy;
     createStrategy,
     updateStrategy,
     deleteStrategy,
+    getStrategy,
     duplicateStrategy,
     validateStrategy,
     runBacktest,
