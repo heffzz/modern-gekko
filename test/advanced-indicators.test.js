@@ -1,4 +1,4 @@
-import { ADX, ATR, BollingerBands, CCI, DEMA, Stochastic, WilliamsR, ParabolicSAR, Ichimoku } from '../src/indicators/index.js';
+const { ADX, ATR, BollingerBands, CCI, DEMA, Stochastic, WilliamsR, ParabolicSAR, Ichimoku } = require('../src/indicators/index.js');
 
 describe('Advanced Indicators Tests', () => {
   const sampleCandles = [
@@ -16,28 +16,38 @@ describe('Advanced Indicators Tests', () => {
     { high: 50, low: 46, close: 49, volume: 1300 },
     { high: 52, low: 48, close: 51, volume: 1400 },
     { high: 54, low: 50, close: 53, volume: 1600 },
-    { high: 53, low: 49, close: 50, volume: 1200 }
+    { high: 53, low: 49, close: 50, volume: 1200 },
+    { high: 55, low: 51, close: 54, volume: 1700 },
+    { high: 56, low: 52, close: 55, volume: 1800 },
+    { high: 54, low: 50, close: 52, volume: 1300 },
+    { high: 53, low: 49, close: 51, volume: 1200 },
+    { high: 55, low: 51, close: 54, volume: 1500 },
+    { high: 57, low: 53, close: 56, volume: 1900 },
+    { high: 58, low: 54, close: 57, volume: 2000 },
+    { high: 56, low: 52, close: 54, volume: 1400 },
+    { high: 55, low: 51, close: 53, volume: 1300 },
+    { high: 57, low: 53, close: 56, volume: 1600 }
   ];
 
   describe('ADX Indicator', () => {
     test('should calculate ADX values correctly', () => {
-      const adx = new ADX(14);
+      const adx = new ADX(10); // Reduced period to work with available data
 
       sampleCandles.forEach(candle => {
         adx.update(candle);
       });
 
-      const result = adx.getResult();
+      const result = adx.getFullResult();
       expect(result).toHaveProperty('adx');
-      expect(result).toHaveProperty('pdi');
-      expect(result).toHaveProperty('mdi');
+      expect(result).toHaveProperty('plusDI');
+      expect(result).toHaveProperty('minusDI');
       expect(typeof result.adx).toBe('number');
       expect(result.adx).toBeGreaterThanOrEqual(0);
       expect(result.adx).toBeLessThanOrEqual(100);
     });
 
     test('should detect trend strength', () => {
-      const adx = new ADX(14);
+      const adx = new ADX(10); // Reduced period to work with available data
 
       sampleCandles.forEach(candle => {
         adx.update(candle);
@@ -79,7 +89,7 @@ describe('Advanced Indicators Tests', () => {
       const bb = new BollingerBands(20, 2);
 
       sampleCandles.forEach(candle => {
-        bb.update(candle.close);
+        bb.update(candle);
       });
 
       const result = bb.getResult();
@@ -94,7 +104,7 @@ describe('Advanced Indicators Tests', () => {
       const bb = new BollingerBands(20, 2);
 
       sampleCandles.forEach(candle => {
-        bb.update(candle.close);
+        bb.update(candle);
       });
 
       const signal = bb.getSignal(50);

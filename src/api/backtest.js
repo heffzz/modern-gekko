@@ -1,17 +1,21 @@
 import express from 'express';
 import multer from 'multer';
 import path from 'path';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
-import { spawn } from 'child_process';
+import fs from 'fs/promises';
 import winston from 'winston';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import { Backtester } from '../engine/backtester.js';
+import csvImporter from '../importers/csvImporter.js';
+import { info, error, warn } from '../utils/logger.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const router = express.Router();
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
-// Configure logger
-const logger = winston.createLogger({
+// Configure additional logger for backtest
+const backtestLogger = winston.createLogger({
   level: 'info',
   format: winston.format.combine(
     winston.format.timestamp(),
@@ -57,12 +61,18 @@ router.post('/', upload.single('csvFile'), async(req, res) => {
     const { strategy, startDate, endDate, initialBalance } = req.body;
 
     if (!req.file) {
-      return res.status(400).json({ error: 'CSV file is required' });
-    }
+        return res.status(400).json({ 
+          success: false,
+          error: 'CSV file is required' 
+        });
+      }
 
-    if (!strategy) {
-      return res.status(400).json({ error: 'Strategy is required' });
-    }
+      if (!strategy) {
+        return res.status(400).json({ 
+          success: false,
+          error: 'Strategy is required' 
+        });
+      }
 
     const csvFilePath = req.file.path;
     const strategyPath = path.join(__dirname, '..', '..', 'strategies', `${strategy}.js`);
@@ -71,10 +81,13 @@ router.post('/', upload.single('csvFile'), async(req, res) => {
     if (!fs.existsSync(strategyPath)) {
       // Clean up uploaded file
       fs.unlinkSync(csvFilePath);
-      return res.status(400).json({ error: `Strategy '${strategy}' not found` });
+      return res.status(400).json({ 
+        success: false,
+        error: `Strategy '${strategy}' not found` 
+      });
     }
 
-    logger.info('Starting backtest', {
+    backtestLogger.info('Starting backtest', {
       csvFile: req.file.originalname,
       strategy,
       startDate,
@@ -90,36 +103,43 @@ router.post('/', upload.single('csvFile'), async(req, res) => {
     if (endDate) args.push('--end', endDate);
     if (initialBalance) args.push('--balance', initialBalance);
 
-    const backtestProcess = spawn('node', [backtesterPath, ...args], {
-      stdio: ['pipe', 'pipe', 'pipe']
-    });
+    const cwd = path.join(__dirname, '..', '..');
+    const fullCommand = `node "${backtesterPath}" ${args.join(' ')}`;
+    
+    backtestLogger.info('Executing command', { command: fullCommand, cwd });
 
-    let stdout = '';
-    let stderr = '';
-
-    backtestProcess.stdout.on('data', (data) => {
-      stdout += data.toString();
-    });
-
-    backtestProcess.stderr.on('data', (data) => {
-      stderr += data.toString();
-    });
-
-    backtestProcess.on('close', (code) => {
+    try {
+      const result = execSync(fullCommand, {
+        cwd,
+        encoding: 'utf8',
+        maxBuffer: 1024 * 1024 // 1MB buffer
+      });
+      
+      backtestLogger.info('Command executed successfully', { outputLength: result.length });
+      
       // Clean up uploaded file
       try {
         fs.unlinkSync(csvFilePath);
       } catch (error) {
-        logger.warn('Failed to clean up uploaded file:', error.message);
+        backtestLogger.warn('Failed to clean up uploaded file:', error.message);
       }
 
-      if (code === 0) {
-        try {
-          const result = JSON.parse(stdout);
-          logger.info('Backtest completed successfully');
-          res.json({
-            success: true,
-            result,
+      try {
+        // Find the JSON part (starts with { and ends with })
+        const jsonStart = result.indexOf('{');
+        const jsonEnd = result.lastIndexOf('}') + 1;
+        
+        if (jsonStart === -1 || jsonEnd === 0) {
+          throw new Error('No JSON found in output');
+        }
+        
+        const jsonString = result.substring(jsonStart, jsonEnd);
+        const parsedResult = JSON.parse(jsonString);
+        backtestLogger.info('Backtest completed successfully');
+        res.json({
+          success: true,
+          data: {
+            ...parsedResult,
             metadata: {
               strategy,
               csvFile: req.file.originalname,
@@ -128,45 +148,43 @@ router.post('/', upload.single('csvFile'), async(req, res) => {
               initialBalance,
               timestamp: new Date().toISOString()
             }
-          });
-        } catch (parseError) {
-          logger.error('Failed to parse backtest result:', parseError.message);
-          res.status(500).json({
-            error: 'Failed to parse backtest result',
-            stdout,
-            stderr
-          });
-        }
-      } else {
-        logger.error('Backtest failed', { code, stderr });
-        res.status(500).json({
-          error: 'Backtest execution failed',
-          code,
-          stderr,
-          stdout
+          }
         });
+      } catch (parseError) {
+         backtestLogger.error('Failed to parse backtest result:', parseError.message);
+        backtestLogger.error(`Raw output length: ${result.length}`);
+        backtestLogger.error(`Raw output first 500 chars: ${result.substring(0, 500)}`);
+        backtestLogger.error(`Raw output last 500 chars: ${result.substring(Math.max(0, result.length - 500))}`);
+         res.status(500).json({ 
+           success: false, 
+           error: 'Failed to parse backtest result',
+           parseError: parseError.message,
+           rawOutput: result.substring(0, 1000) // Limit output size
+         });
       }
-    });
-
-    backtestProcess.on('error', (error) => {
-      logger.error('Failed to start backtest process:', error.message);
-
+    } catch (execError) {
+      backtestLogger.error('Command execution failed', { error: execError.message });
+      
       // Clean up uploaded file
       try {
         fs.unlinkSync(csvFilePath);
-      } catch (cleanupError) {
-        logger.warn('Failed to clean up uploaded file:', cleanupError.message);
+      } catch (error) {
+        backtestLogger.warn('Failed to clean up uploaded file:', error.message);
       }
-
+      
       res.status(500).json({
-        error: 'Failed to start backtest process',
-        message: error.message
+        success: false,
+        error: 'Backtest execution failed',
+        details: execError.message
       });
-    });
+    }
+
+
 
   } catch (error) {
-    logger.error('Backtest API error:', error.message);
+    backtestLogger.error('Backtest API error:', error.message);
     res.status(500).json({
+      success: false,
       error: 'Internal server error',
       message: error.message
     });
@@ -179,7 +197,10 @@ router.get('/strategies', (req, res) => {
     const strategiesDir = path.join(__dirname, '..', '..', 'strategies');
 
     if (!fs.existsSync(strategiesDir)) {
-      return res.json({ strategies: [] });
+      return res.json({ 
+        success: true,
+        data: [] 
+      });
     }
 
     const files = fs.readdirSync(strategiesDir)
@@ -197,10 +218,14 @@ router.get('/strategies', (req, res) => {
         };
       });
 
-    res.json({ strategies: files });
+    res.json({ 
+      success: true,
+      data: files 
+    });
   } catch (error) {
-    logger.error('Failed to list strategies:', error.message);
+    backtestLogger.error('Failed to list strategies:', error.message);
     res.status(500).json({
+      success: false,
       error: 'Failed to list strategies',
       message: error.message
     });

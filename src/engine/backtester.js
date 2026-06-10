@@ -9,45 +9,44 @@ import CSVImporter from '../importers/csvImporter.js';
 import { StrategyEngine } from './strategyEngine.js';
 import { PortfolioSimulator } from './portfolioSimulator.js';
 
-
-
-// CLI argument parsing
-const argv = yargs(hideBin(process.argv))
-  .option('data', {
-    alias: 'd',
-    type: 'string',
-    description: 'Path to CSV data file',
-    demandOption: true
-  })
-  .option('strategy', {
-    alias: 's',
-    type: 'string',
-    description: 'Path to strategy file',
-    demandOption: true
-  })
-  .option('start', {
-    type: 'string',
-    description: 'Start date (YYYY-MM-DD)',
-    default: null
-  })
-  .option('end', {
-    type: 'string',
-    description: 'End date (YYYY-MM-DD)',
-    default: null
-  })
-  .option('balance', {
-    alias: 'b',
-    type: 'number',
-    description: 'Initial balance',
-    default: 10000
-  })
-  .option('currency', {
-    alias: 'c',
-    type: 'string',
-    description: 'Base currency',
-    default: 'USD'
-  })
-  .option('asset', {
+// CLI argument parsing function
+function parseCliArgs() {
+  return yargs(hideBin(process.argv))
+    .option('data', {
+      alias: 'd',
+      type: 'string',
+      description: 'Path to CSV data file',
+      demandOption: true
+    })
+    .option('strategy', {
+      alias: 's',
+      type: 'string',
+      description: 'Path to strategy file',
+      demandOption: true
+    })
+    .option('start', {
+      type: 'string',
+      description: 'Start date (YYYY-MM-DD)',
+      default: null
+    })
+    .option('end', {
+      type: 'string',
+      description: 'End date (YYYY-MM-DD)',
+      default: null
+    })
+    .option('balance', {
+      alias: 'b',
+      type: 'number',
+      description: 'Initial balance',
+      default: 10000
+    })
+    .option('currency', {
+      alias: 'c',
+      type: 'string',
+      description: 'Base currency',
+      default: 'USD'
+    })
+    .option('asset', {
     alias: 'a',
     type: 'string',
     description: 'Trading asset',
@@ -72,6 +71,7 @@ const argv = yargs(hideBin(process.argv))
   })
   .help()
   .argv;
+}
 
 class Backtester {
   constructor(options = {}) {
@@ -318,11 +318,14 @@ class Backtester {
   }
 }
 
-// CLI execution
-if (process.argv[1] && process.argv[1].endsWith('backtester.js')) {
+// CLI execution - only run when file is executed directly
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   (async() => {
     try {
-      console.error('Starting backtester...');
+      const argv = parseCliArgs();
+      if (argv.verbose) {
+        console.error('Starting backtester...');
+      }
       const backtester = new Backtester({
         initialBalance: argv.balance,
         currency: argv.currency,
@@ -331,13 +334,17 @@ if (process.argv[1] && process.argv[1].endsWith('backtester.js')) {
         verbose: argv.verbose
       });
 
-      console.error('Running backtest...');
+      if (argv.verbose) {
+        console.error('Running backtest...');
+      }
       const results = await backtester.run(argv.data, argv.strategy, {
         startDate: argv.start,
         endDate: argv.end
       });
 
-      console.error('Generating output...');
+      if (argv.verbose) {
+        console.error('Generating output...');
+      }
       const output = JSON.stringify(results, null, 2);
 
       if (argv.output) {
@@ -350,8 +357,10 @@ if (process.argv[1] && process.argv[1].endsWith('backtester.js')) {
       console.log(output);
 
     } catch (error) {
-      console.error(`Error: ${error.message}`);
-      console.error(error.stack);
+      console.error(`Backtest failed: ${error.message}`);
+      if (argv.verbose) {
+        console.error(error.stack);
+      }
       process.exit(1);
     }
   })();

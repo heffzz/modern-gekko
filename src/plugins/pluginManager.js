@@ -51,30 +51,38 @@ class PluginManager extends EventEmitter {
     }
   }
 
-  async loadPlugin(pluginName) {
+  async loadPlugin(pluginName, config = {}) {
     try {
-      const pluginPath = path.join(this.config.pluginsDir, `${pluginName}.js`);
+      let plugin;
+      
+      // Check if plugin is already registered (for testing)
+      if (this.plugins.has(pluginName)) {
+        plugin = this.plugins.get(pluginName);
+      } else {
+        // Load from file
+        const pluginPath = path.join(this.config.pluginsDir, `${pluginName}.js`);
 
-      // Check if plugin file exists
-      await fs.access(pluginPath);
+        // Check if plugin file exists
+        await fs.access(pluginPath);
 
-      // Clear require cache to allow reloading
-      delete require.cache[require.resolve(pluginPath)];
+        // Clear require cache to allow reloading
+        delete require.cache[require.resolve(pluginPath)];
 
-      // Load plugin
-      const PluginClass = require(pluginPath);
-      const plugin = new PluginClass(this.config[pluginName] || {});
+        // Load plugin
+        const PluginClass = require(pluginPath);
+        plugin = new PluginClass(this.config[pluginName] || config);
 
-      // Validate plugin interface
-      if (!this.validatePlugin(plugin)) {
-        throw new Error(`Plugin ${pluginName} does not implement required interface`);
+        // Validate plugin interface
+        if (!this.validatePlugin(plugin)) {
+          throw new Error(`Plugin ${pluginName} does not implement required interface`);
+        }
+
+        // Register plugin
+        this.plugins.set(pluginName, plugin);
       }
 
       // Initialize plugin
-      await plugin.initialize();
-
-      // Register plugin
-      this.plugins.set(pluginName, plugin);
+      await plugin.initialize(config);
 
       // Register plugin hooks
       if (plugin.hooks) {
@@ -87,8 +95,12 @@ class PluginManager extends EventEmitter {
 
       console.log(`Plugin loaded: ${pluginName}`);
 
-      return plugin;
+      return true;
     } catch (error) {
+      // Remove plugin from registry if initialization failed
+      if (this.plugins.has(pluginName)) {
+        this.plugins.delete(pluginName);
+      }
       this.emit('error', { type: 'pluginLoad', pluginName, error });
       console.error(`Failed to load plugin ${pluginName}:`, error.message);
       throw error;
@@ -140,6 +152,21 @@ class PluginManager extends EventEmitter {
       }
     }
 
+    return true;
+  }
+
+  registerPlugin(name, plugin) {
+    if (this.plugins.has(name)) {
+      throw new Error(`Plugin ${name} is already registered`);
+    }
+
+    if (!this.validatePlugin(plugin)) {
+      throw new Error(`Plugin ${name} does not implement required methods`);
+    }
+
+    this.plugins.set(name, plugin);
+    this.emit('pluginRegistered', { name, plugin });
+    
     return true;
   }
 
@@ -203,6 +230,16 @@ class PluginManager extends EventEmitter {
       performance,
       timestamp: new Date()
     });
+  }
+
+  async sendNotification(message, level = 'info') {
+    const plugins = Array.from(this.plugins.values());
+    const promises = plugins.map(plugin => {
+      if (plugin.sendNotification && typeof plugin.sendNotification === 'function') {
+        return plugin.sendNotification(message, level);
+      }
+    });
+    return await Promise.all(promises.filter(p => p));
   }
 
   getPlugin(name) {
@@ -290,6 +327,8 @@ class BasePlugin {
     this.config = config;
     this.enabled = config.enabled !== false;
     this.initialized = false;
+    this.messageCount = 0;
+    this.lastResetTime = Date.now();
   }
 
   async initialize() {
@@ -370,6 +409,36 @@ class BasePlugin {
     if (missing.length > 0) {
       throw new Error(`Missing required configuration: ${missing.join(', ')}`);
     }
+  }
+
+  // Rate limiting
+  checkRateLimit() {
+    const now = Date.now();
+    const rateLimitPerMinute = this.config.rateLimitPerMinute || 60;
+    
+    // Reset counter if more than a minute has passed
+    if (now - this.lastResetTime > 60000) {
+      this.messageCount = 0;
+      this.lastResetTime = now;
+    }
+    
+    // Check if we would exceed the rate limit
+    if (this.messageCount >= rateLimitPerMinute) {
+      return false;
+    }
+    
+    // Increment counter and allow the message
+    this.messageCount++;
+    return true;
+  }
+
+  // Message formatting methods
+  formatTradeMessage(trade) {
+    return `Trade: ${trade.symbol} ${trade.side} ${trade.amount} at ${trade.price} (PnL: ${trade.pnl})`;
+  }
+
+  formatPerformanceMessage(performance) {
+    return `Performance Report - Total PnL: ${performance.totalPnL}, Win Rate: ${performance.winRate}%, Total Trades: ${performance.totalTrades}, Max Drawdown: ${performance.maxDrawdown}%`;
   }
 }
 

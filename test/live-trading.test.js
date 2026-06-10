@@ -1,5 +1,5 @@
-import { LiveTradingEngine } from '../src/engine/liveTrading.js';
-import MockExchange from '../src/exchanges/mock.js';
+const LiveTradingEngine = require('../src/engine/liveTrading.js');
+const MockExchange = require('../src/exchanges/mock.js');
 
 describe('LiveTradingEngine', () => {
   let engine;

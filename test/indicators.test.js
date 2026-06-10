@@ -5,271 +5,7 @@
  * and proper handling of edge cases.
  */
 
-// Mock indicator classes for testing
-class SMA {
-  constructor(period) {
-    if (period <= 0) throw new Error('SMA period must be greater than 0');
-    this.period = period;
-    this.values = [];
-    this.results = [];
-  }
-
-  update(value) {
-    if (typeof value !== 'number' || isNaN(value)) {
-      throw new Error('SMA value must be a valid number');
-    }
-
-    this.values.push(value);
-    if (this.values.length > this.period) this.values.shift();
-
-    if (this.values.length === this.period) {
-      const result = this.values.reduce((a, b) => a + b) / this.period;
-      this.results.push(result);
-      return result;
-    }
-
-    this.results.push(null);
-    return null;
-  }
-
-  getValue() {
-    return this.values.length === this.period ? this.values.reduce((a, b) => a + b) / this.period : null;
-  }
-
-  getResults() {
-    return this.results;
-  }
-
-  reset() {
-    this.values = [];
-    this.results = [];
-  }
-
-  static calculate(data, period) {
-    const result = [];
-    for (let i = 0; i < data.length; i++) {
-      if (i < period - 1) {
-        result.push(null);
-      } else {
-        const sum = data.slice(i - period + 1, i + 1).reduce((a, b) => a + b, 0);
-        result.push(sum / period);
-      }
-    }
-    return result;
-  }
-
-  static isBullishCrossover(fastSMA, slowSMA) {
-    return fastSMA.getValue() > slowSMA.getValue();
-  }
-
-  toJSON() {
-    return {
-      type: 'SMA',
-      period: this.period,
-      values: this.values,
-      results: this.results
-    };
-  }
-
-  static fromJSON(json) {
-    const sma = new SMA(json.period);
-    sma.values = json.values;
-    sma.results = json.results;
-    return sma;
-  }
-}
-
-class EMA {
-  constructor(period) {
-    if (period <= 0) throw new Error('EMA period must be greater than 0');
-    this.period = period;
-    this.multiplier = 2 / (period + 1);
-    this.values = [];
-    this.ema = null;
-    this.results = [];
-  }
-
-  update(value) {
-    this.values.push(value);
-
-    if (this.values.length < this.period) {
-      this.results.push(null);
-      return null;
-    }
-
-    if (this.ema === null) {
-      // First EMA is SMA
-      this.ema = this.values.slice(0, this.period).reduce((a, b) => a + b) / this.period;
-    } else {
-      this.ema = (value - this.ema) * this.multiplier + this.ema;
-    }
-
-    this.results.push(this.ema);
-    return this.ema;
-  }
-
-  getValue() {
-    return this.ema;
-  }
-
-  getMultiplier() {
-    return this.multiplier;
-  }
-
-  getResults() {
-    return this.results;
-  }
-
-  static calculate(data, period) {
-    const result = [];
-    let ema = null;
-    const multiplier = 2 / (period + 1);
-
-    for (let i = 0; i < data.length; i++) {
-      if (i < period - 1) {
-        result.push(null);
-      } else if (i === period - 1) {
-        ema = data.slice(0, period).reduce((a, b) => a + b) / period;
-        result.push(ema);
-      } else {
-        ema = (data[i] - ema) * multiplier + ema;
-        result.push(ema);
-      }
-    }
-
-    return result;
-  }
-
-  static isBullishCrossover(fastEMA, slowEMA) {
-    return fastEMA.getValue() > slowEMA.getValue();
-  }
-}
-
-class RSI {
-  constructor(period = 14) {
-    if (period <= 0) throw new Error('RSI period must be greater than 0');
-    this.period = period;
-    this.gains = [];
-    this.losses = [];
-    this.lastValue = null;
-    this.results = [];
-  }
-
-  update(value) {
-    if (this.lastValue !== null) {
-      const change = value - this.lastValue;
-      this.gains.push(change > 0 ? change : 0);
-      this.losses.push(change < 0 ? Math.abs(change) : 0);
-
-      if (this.gains.length > this.period) {
-        this.gains.shift();
-        this.losses.shift();
-      }
-    }
-
-    this.lastValue = value;
-
-    if (this.gains.length === this.period) {
-      const avgGain = this.gains.reduce((a, b) => a + b) / this.period;
-      const avgLoss = this.losses.reduce((a, b) => a + b) / this.period;
-
-      let rsi;
-      if (avgLoss === 0) {
-        rsi = 100;
-      } else {
-        const rs = avgGain / avgLoss;
-        rsi = 100 - (100 / (1 + rs));
-      }
-
-      this.results.push(rsi);
-      return rsi;
-    }
-
-    this.results.push(null);
-    return null;
-  }
-
-  getValue() {
-    if (this.gains.length === this.period) {
-      const avgGain = this.gains.reduce((a, b) => a + b) / this.period;
-      const avgLoss = this.losses.reduce((a, b) => a + b) / this.period;
-
-      if (avgLoss === 0) {
-        return 100;
-      } else {
-        const rs = avgGain / avgLoss;
-        return 100 - (100 / (1 + rs));
-      }
-    }
-    return null;
-  }
-
-  getResults() {
-    return this.results;
-  }
-
-  isOverbought(threshold = 70) {
-    const value = this.getValue();
-    return value !== null && value > threshold;
-  }
-
-  isOversold(threshold = 30) {
-    const value = this.getValue();
-    return value !== null && value < threshold;
-  }
-
-  isReady() {
-    return this.gains.length === this.period;
-  }
-
-  reset() {
-    this.gains = [];
-    this.losses = [];
-    this.lastValue = null;
-    this.results = [];
-  }
-
-  getInfo() {
-    return {
-      name: 'Relative Strength Index',
-      type: 'momentum',
-      period: this.period,
-      isReady: this.isReady()
-    };
-  }
-
-  static calculate(data, period = 14) {
-    const result = [];
-    const gains = [];
-    const losses = [];
-
-    for (let i = 1; i < data.length; i++) {
-      const change = data[i] - data[i - 1];
-      gains.push(change > 0 ? change : 0);
-      losses.push(change < 0 ? Math.abs(change) : 0);
-    }
-
-    for (let i = 0; i < data.length; i++) {
-      if (i < period) {
-        result.push(null);
-      } else {
-        const startIdx = i - period;
-        const endIdx = i - 1;
-        const avgGain = gains.slice(startIdx, endIdx + 1).reduce((a, b) => a + b, 0) / period;
-        const avgLoss = losses.slice(startIdx, endIdx + 1).reduce((a, b) => a + b, 0) / period;
-
-        if (avgLoss === 0) {
-          result.push(100);
-        } else {
-          const rs = avgGain / avgLoss;
-          result.push(100 - (100 / (1 + rs)));
-        }
-      }
-    }
-
-    return result;
-  }
-}
+const { SMA, EMA, RSI } = require('../src/indicators/index.js');
 
 describe('Technical Indicators', () => {
   describe('SMA (Simple Moving Average)', () => {
@@ -314,14 +50,19 @@ describe('Technical Indicators', () => {
       const slowSMA = new SMA(3);
 
       // Setup data where fast SMA will cross above slow SMA
-      const prices = [10, 10, 10, 15, 20];
+      // Start with declining prices, then rising prices to create crossover
+      const prices = [15, 10, 5, 10, 20, 30, 40];
 
+      let crossoverDetected = false;
       for (const price of prices) {
         fastSMA.update(price);
         slowSMA.update(price);
+        if (SMA.isBullishCrossover(fastSMA, slowSMA)) {
+          crossoverDetected = true;
+        }
       }
 
-      expect(SMA.isBullishCrossover(fastSMA, slowSMA)).toBe(true);
+      expect(crossoverDetected).toBe(true);
     });
 
     test('should reset correctly', () => {
@@ -380,14 +121,19 @@ describe('Technical Indicators', () => {
       const fastEMA = new EMA(2);
       const slowEMA = new EMA(3);
 
-      const prices = [10, 10, 10, 15, 20];
+      // Start with declining prices, then rising prices to create crossover
+      const prices = [15, 10, 5, 10, 20, 30, 40];
 
+      let crossoverDetected = false;
       for (const price of prices) {
         fastEMA.update(price);
         slowEMA.update(price);
+        if (EMA.isBullishCrossover(fastEMA, slowEMA)) {
+          crossoverDetected = true;
+        }
       }
 
-      expect(EMA.isBullishCrossover(fastEMA, slowEMA)).toBe(true);
+      expect(crossoverDetected).toBe(true);
     });
   });
 

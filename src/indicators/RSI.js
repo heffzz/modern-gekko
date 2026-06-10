@@ -13,7 +13,7 @@
  * RSI = 100 - (100 / (1 + RS))
  */
 
-export default class RSI {
+class RSI {
   constructor(period = 14) {
     if (period <= 0) {
       throw new Error('RSI period must be greater than 0');
@@ -364,5 +364,4 @@ export default class RSI {
   }
 }
 
-// Named export for compatibility
-export { RSI };
+module.exports = { RSI };

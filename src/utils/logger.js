@@ -91,32 +91,35 @@ const createModuleLogger = (module) => {
 export { logger, createModuleLogger };
 
 // Convenience methods
-export const info = (message, meta = {}) => logger.info(message, meta);
-export const error = (message, meta = {}) => logger.error(message, meta);
-export const warn = (message, meta = {}) => logger.warn(message, meta);
-export const debug = (message, meta = {}) => logger.debug(message, meta);
+const info = (message, meta = {}) => logger.info(message, meta);
+const error = (message, meta = {}) => logger.error(message, meta);
+const warn = (message, meta = {}) => logger.warn(message, meta);
+const debug = (message, meta = {}) => logger.debug(message, meta);
 
-// Trading specific loggers
-export const trade = (message, tradeData = {}) => {
-  logger.info(message, { type: 'trade', ...tradeData });
+// These can be used for specific logging contexts
+
+const trade = (message, tradeData = {}) => {
+  logger.info(message, { context: 'trade', ...tradeData });
 };
 
-export const strategy = (message, strategyData = {}) => {
-  logger.info(message, { type: 'strategy', ...strategyData });
+const strategy = (message, strategyData = {}) => {
+  logger.info(message, { context: 'strategy', ...strategyData });
 };
 
-export const backtest = (message, backtestData = {}) => {
-  logger.info(message, { type: 'backtest', ...backtestData });
+const backtest = (message, backtestData = {}) => {
+  logger.info(message, { context: 'backtest', ...backtestData });
 };
 
-export const performance = (message, performanceData = {}) => {
-  logger.info(message, { type: 'performance', ...performanceData });
+const performance = (message, performanceData = {}) => {
+  logger.info(message, { context: 'performance', ...performanceData });
 };
 
-export const api = (message, apiData = {}) => {
-  logger.info(message, { type: 'api', ...apiData });
+const api = (message, apiData = {}) => {
+  logger.info(message, { context: 'api', ...apiData });
 };
 
-export const exchange = (message, exchangeData = {}) => {
-  logger.info(message, { type: 'exchange', ...exchangeData });
+const exchange = (message, exchangeData = {}) => {
+  logger.info(message, { context: 'exchange', ...exchangeData });
 };
+
+export { trade, strategy, backtest, performance, api, exchange, info, error, warn, debug };

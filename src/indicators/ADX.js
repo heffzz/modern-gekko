@@ -168,4 +168,4 @@ class ADX {
   }
 }
 
-export default ADX;
+export { ADX };

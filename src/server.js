@@ -2,11 +2,15 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
-import winston from 'winston';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import { info, error, warn } from './utils/logger.js';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 import healthRouter from './api/health.js';
 import backtestRouter from './api/backtest.js';
 import indicatorsRouter from './api/indicators.js';
@@ -15,30 +19,7 @@ import strategiesRouter from './api/strategies.js';
 // Load environment variables
 dotenv.config();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
-// Configure logger
-const logger = winston.createLogger({
-  level: process.env.LOG_LEVEL || 'info',
-  format: winston.format.combine(
-    winston.format.timestamp(),
-    winston.format.errors({ stack: true }),
-    winston.format.json()
-  ),
-  defaultMeta: { service: 'modern-gekko' },
-  transports: [
-    new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
-    new winston.transports.File({ filename: 'logs/combined.log' })
-  ]
-});
-
-// Add console transport in development
-if (process.env.NODE_ENV !== 'production') {
-  logger.add(new winston.transports.Console({
-    format: winston.format.simple()
-  }));
-}
 
 const app = express();
 const server = createServer(app);
@@ -60,7 +41,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Request logging middleware
 app.use((req, res, next) => {
-  logger.info(`${req.method} ${req.path}`, {
+  info(`${req.method} ${req.path}`, {
     ip: req.ip,
     userAgent: req.get('User-Agent')
   });
@@ -104,7 +85,7 @@ if (process.env.NODE_ENV === 'production') {
 
 // Error handling middleware
 app.use((err, req, res, _next) => {
-  logger.error('Unhandled error:', err);
+  error('Unhandled error:', err);
   res.status(500).json({
     error: 'Internal server error',
     message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
@@ -118,21 +99,21 @@ app.use((req, res) => {
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
-  logger.info('SIGTERM received, shutting down gracefully');
+  info('SIGTERM received, shutting down gracefully');
   process.exit(0);
 });
 
 process.on('SIGINT', () => {
-  logger.info('SIGINT received, shutting down gracefully');
+  info('SIGINT received, shutting down gracefully');
   process.exit(0);
 });
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
-  logger.info(`Client connected: ${socket.id}`);
+  info(`Client connected: ${socket.id}`);
 
   socket.on('disconnect', () => {
-    logger.info(`Client disconnected: ${socket.id}`);
+    info(`Client disconnected: ${socket.id}`);
   });
 
   // Handle backtest progress updates
@@ -146,9 +127,9 @@ app.set('io', io);
 
 // Start server
 server.listen(PORT, () => {
-  logger.info(`Modern Gekko server running on port ${PORT}`);
-  logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  logger.info(`Live trading: ${process.env.LIVE === 'true' ? 'ENABLED' : 'DISABLED'}`);
+  info(`Modern Gekko server running on port ${PORT}`);
+  info(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  info(`Live trading: ${process.env.LIVE === 'true' ? 'ENABLED' : 'DISABLED'}`);
 });
 
 export default app;

@@ -4,8 +4,8 @@ describe('MultiTimeframeManager', () => {
   let mockStrategy;
   let mockCandleSource;
 
-  beforeAll(async() => {
-    const module = await import('../src/engine/multiTimeframe.js');
+  beforeAll(() => {
+    const module = require('../src/engine/multiTimeframe.js');
     MultiTimeframeManager = module.MultiTimeframeManager;
     TimeframeConverter = module.TimeframeConverter;
   });
@@ -103,7 +103,7 @@ describe('MultiTimeframeManager', () => {
 
     test('should aggregate candles for higher timeframes', () => {
       manager.addTimeframe('1m', mockCandleSource);
-      manager.addTimeframe('5m', mockCandleSource);
+      manager.addTimeframe('5m'); // No candle source - will be aggregated from 1m
       manager.subscribeStrategy('strategy1', ['1m', '5m'], mockStrategy.onCandle);
 
       // Add 5 one-minute candles
@@ -143,7 +143,7 @@ describe('MultiTimeframeManager', () => {
       manager.addTimeframe('1m', mockCandleSource);
       manager.addTimeframe('5m', mockCandleSource);
       manager.addTimeframe('1h', mockCandleSource);
-      manager.subscribeStrategy('strategy1', ['1m', '5m', '1h'], mockStrategy.onCandle);
+      manager.subscribeStrategy('strategy1', ['1m', '5m', '1h'], mockStrategy.onCandle, mockStrategy.onMultiTimeframeUpdate);
 
       // Process enough candles to trigger all timeframes
       for (let i = 0; i < 60; i++) {
@@ -191,7 +191,7 @@ describe('MultiTimeframeManager', () => {
   describe('Latest Candles', () => {
     test('should return latest candles for all timeframes', () => {
       manager.addTimeframe('1m', mockCandleSource);
-      manager.addTimeframe('5m', mockCandleSource);
+      manager.addTimeframe('5m'); // No candle source - will be aggregated from 1m
       manager.subscribeStrategy('strategy1', ['1m', '5m'], mockStrategy.onCandle);
 
       // Process some candles
@@ -214,7 +214,7 @@ describe('MultiTimeframeManager', () => {
       expect(latestCandles).toHaveProperty('1m');
       expect(latestCandles).toHaveProperty('5m');
       expect(latestCandles['1m'].close).toBe(111); // Last 1m candle
-      expect(latestCandles['5m'].close).toBe(106); // Last complete 5m candle
+      expect(latestCandles['5m'].close).toBe(111); // Last complete 5m candle (from candles 5-9)
     });
   });
 });
@@ -256,8 +256,8 @@ describe('TimeframeConverter', () => {
       expect(converter.canConvert('1h', '1d')).toBe(true);
 
       expect(converter.canConvert('5m', '1m')).toBe(false); // Can't go to smaller timeframe
-      expect(converter.canConvert('1m', '3m')).toBe(false); // 3m is not evenly divisible
-      expect(converter.canConvert('5m', '7m')).toBe(false); // 7m is not evenly divisible
+      expect(converter.canConvert('1m', '3m')).toBe(true); // 3m is evenly divisible by 1m
+      expect(converter.canConvert('5m', '7m')).toBe(false); // 7m is not evenly divisible by 5m
     });
   });
 

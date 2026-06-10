@@ -5,9 +5,9 @@
  * It provides realistic fee structures, slippage simulation, and order execution.
  */
 
-import { EventEmitter } from 'events';
+const { EventEmitter } = require('events');
 
-export default class MockExchange extends EventEmitter {
+class MockExchange extends EventEmitter {
   constructor(config = {}) {
     super();
 
@@ -601,4 +601,4 @@ export default class MockExchange extends EventEmitter {
 }
 
 // Named export for compatibility
-export { MockExchange };
+module.exports = MockExchange;

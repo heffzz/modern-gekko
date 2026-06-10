@@ -1,16 +1,18 @@
-export default {
+module.exports = {
   testEnvironment: 'node',
-  globals: {
-    'NODE_ENV': 'test',
-    jest: true
+  transform: {
+    '^.+\.js$': 'babel-jest'
   },
-  transform: {},
   moduleNameMapper: {
     '^(\.\.?\/.+)\.js$': '$1'
   },
   moduleFileExtensions: ['js', 'json'],
   verbose: true,
   collectCoverage: true,
+  collectCoverageFrom: [
+    'src/**/*.js',
+    '!src/server.js'
+  ],
   coverageDirectory: 'coverage',
   coverageReporters: [
     'text',
@@ -20,5 +22,6 @@ export default {
   testMatch: [
     '**/test/**/*.test.js'
   ],
+
   setupFilesAfterEnv: ['<rootDir>/test/setup.js']
 };

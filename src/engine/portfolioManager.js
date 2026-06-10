@@ -1,5 +1,5 @@
-import { EventEmitter } from 'events';
-import { logger } from '../utils/logger.js';
+const { EventEmitter } = require('events');
+const { logger } = require('../utils/logger.js');
 
 class PortfolioManager extends EventEmitter {
   constructor(config = {}) {
@@ -634,7 +634,7 @@ class OrderManager {
   }
 }
 
-export {
+module.exports = {
   PortfolioManager,
   RiskManager,
   PositionSizer,

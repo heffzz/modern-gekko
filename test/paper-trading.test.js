@@ -1,4 +1,4 @@
-import { PaperTradingEngine } from '../src/engine/paperTrading.js';
+const { PaperTradingEngine } = require('../src/engine/paperTrading.js');
 
 describe('PaperTradingEngine', () => {
   let engine;

@@ -268,4 +268,4 @@ class CCI {
   }
 }
 
-export default CCI;
+export { CCI };

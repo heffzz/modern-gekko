@@ -2,7 +2,7 @@ import { SMA } from '../indicators/SMA.js';
 import { EMA } from '../indicators/EMA.js';
 import { RSI } from '../indicators/RSI.js';
 
-export class StrategyEngine {
+class StrategyEngine {
   constructor() {
     this.currentCandle = null;
     this.historicalCandles = [];
@@ -326,3 +326,5 @@ export class StrategyEngine {
     this.cache.clear();
   }
 }
+
+export { StrategyEngine };

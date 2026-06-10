@@ -388,4 +388,4 @@ class Stochastic {
   }
 }
 
-export default Stochastic;
+export { Stochastic };

@@ -1,10 +1,13 @@
 /**
- * Sample Trading Strategy: SMA Crossover with RSI Filter
+ * @name SMA Crossover Strategy
+ * @description A simple moving average crossover strategy with RSI filter for trend confirmation and risk management
+ * @author Modern Gekko
+ * @version 1.0.0
  * 
  * This strategy uses:
  * - Simple Moving Average crossover (fast SMA crosses above/below slow SMA)
  * - RSI filter to avoid trades in overbought/oversold conditions
- * - Basic risk management
+ * - Basic risk management with stop loss and take profit
  */
 
 export default class SampleStrategy {

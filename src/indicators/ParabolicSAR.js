@@ -396,4 +396,4 @@ class ParabolicSAR {
   }
 }
 
-export default ParabolicSAR;
+export { ParabolicSAR };

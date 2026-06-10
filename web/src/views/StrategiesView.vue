@@ -2,6 +2,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useStrategiesStore } from '@/stores/strategies'
+import StrategySelector from '@/components/strategies/StrategySelector.vue'
+import StrategyParameterConfig from '@/components/strategies/StrategyParameterConfig.vue'
 import type { Strategy } from '@/types'
 
 const router = useRouter()
@@ -24,6 +26,11 @@ const sortOrder = ref<'asc' | 'desc'>('asc')
 const viewMode = ref<'grid' | 'list'>('grid')
 const showDeleteModal = ref(false)
 const strategyToDelete = ref<Strategy | null>(null)
+
+// Strategy configuration state
+const showParameterConfig = ref(false)
+const selectedStrategyForConfig = ref<string | null>(null)
+const currentTab = ref<'browse' | 'configure'>('browse')
 
 // Strategy categories
 const categories = [
@@ -224,6 +231,33 @@ const getStrategyStatusText = (strategy: Strategy) => {
   return 'Inactive'
 }
 
+// Strategy configuration methods
+const configureStrategy = (strategyId: string) => {
+  selectedStrategyForConfig.value = strategyId
+  currentTab.value = 'configure'
+  showParameterConfig.value = true
+}
+
+const onStrategySelected = (strategyId: string) => {
+  configureStrategy(strategyId)
+}
+
+const onParametersApplied = (config: any) => {
+  console.log('Parameters applied:', config)
+  // Here you would typically save the configuration
+  if (typeof window !== 'undefined' && window.$notify) {
+    window.$notify.success('Configuration Applied', 'Strategy parameters have been updated')
+  }
+}
+
+const switchTab = (tab: 'browse' | 'configure') => {
+  currentTab.value = tab
+  if (tab === 'browse') {
+    showParameterConfig.value = false
+    selectedStrategyForConfig.value = null
+  }
+}
+
 onMounted(() => {
   strategiesStore.fetchStrategies()
 })
@@ -241,6 +275,24 @@ onMounted(() => {
       </div>
       
       <div class="header-actions">
+        <!-- Tab Navigation -->
+        <div class="tab-navigation">
+          <button 
+            @click="switchTab('browse')"
+            class="tab-button"
+            :class="{ 'active': currentTab === 'browse' }"
+          >
+            📋 Browse
+          </button>
+          <button 
+            @click="switchTab('configure')"
+            class="tab-button"
+            :class="{ 'active': currentTab === 'configure' }"
+          >
+            ⚙️ Configure
+          </button>
+        </div>
+        
         <button @click="importStrategy" class="action-button secondary">
           📥 Import
         </button>
@@ -251,6 +303,40 @@ onMounted(() => {
     </div>
 
     <div class="strategies-layout">
+      <!-- Strategy Configuration Section -->
+      <div v-if="currentTab === 'configure'" class="strategy-configuration">
+        <div class="configuration-layout">
+          <!-- Strategy Selector -->
+          <div class="selector-section">
+            <h2 class="section-title">Select Strategy</h2>
+            <StrategySelector 
+              @strategy-selected="onStrategySelected"
+              :selected-strategy="selectedStrategyForConfig"
+            />
+          </div>
+          
+          <!-- Parameter Configuration -->
+          <div v-if="selectedStrategyForConfig" class="config-section">
+            <h2 class="section-title">Configure Parameters</h2>
+            <StrategyParameterConfig 
+              :strategy-id="selectedStrategyForConfig"
+              @parameters-applied="onParametersApplied"
+            />
+          </div>
+          
+          <!-- Empty State for Configuration -->
+          <div v-else class="config-empty-state">
+            <div class="empty-icon">⚙️</div>
+            <h3 class="empty-title">Select a Strategy to Configure</h3>
+            <p class="empty-description">
+              Choose a strategy from the selector above to configure its parameters
+            </p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Browse Strategies Section -->
+      <div v-else class="strategies-browse">
       <!-- Sidebar -->
       <div class="strategies-sidebar">
         <!-- Categories -->
@@ -513,10 +599,108 @@ onMounted(() => {
         </div>
       </div>
     </div>
+    </div> <!-- End of strategies-browse -->
   </div>
 </template>
 
 <style scoped>
+/* Tab Navigation Styles */
+.tab-navigation {
+  display: flex;
+  gap: 0.5rem;
+  margin-right: 1rem;
+}
+
+.tab-button {
+  padding: 0.5rem 1rem;
+  border: 1px solid #e5e7eb;
+  background: white;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.tab-button:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
+
+.tab-button.active {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+/* Strategy Configuration Layout */
+.strategy-configuration {
+  flex: 1;
+  padding: 1.5rem;
+}
+
+.configuration-layout {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 2rem;
+  height: 100%;
+}
+
+.selector-section,
+.config-section {
+  background: white;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  padding: 1.5rem;
+  height: fit-content;
+}
+
+.section-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.config-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 3rem;
+  background: white;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+}
+
+.config-empty-state .empty-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.config-empty-state .empty-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+
+.config-empty-state .empty-description {
+  color: #6b7280;
+  max-width: 24rem;
+}
+
+/* Browse Strategies Layout */
+.strategies-browse {
+  display: flex;
+  flex: 1;
+  gap: 1.5rem;
+}
+
 .strategies-view {
   padding: 1.5rem;
   max-width: 1400px;
@@ -1274,11 +1458,41 @@ onMounted(() => {
   .header-actions {
     width: 100%;
     justify-content: stretch;
+    flex-wrap: wrap;
+  }
+  
+  .tab-navigation {
+    order: -1;
+    width: 100%;
+    margin-right: 0;
+    margin-bottom: 0.5rem;
+  }
+  
+  .tab-button {
+    flex: 1;
+    justify-content: center;
   }
   
   .action-button {
     flex: 1;
     justify-content: center;
+  }
+  
+  .configuration-layout {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .strategies-browse {
+    flex-direction: column;
+  }
+  
+  .strategies-sidebar {
+    width: 100%;
+  }
+  
+  .strategies-main {
+    width: 100%;
   }
   
   .strategies-container.grid {

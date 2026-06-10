@@ -1,5 +1,5 @@
-import { EventEmitter } from 'events';
-import { logger } from '../utils/logger.js';
+const { EventEmitter } = require('events');
+const { logger } = require('../utils/logger.js');
 
 class MultiTimeframeManager extends EventEmitter {
   constructor(config = {}) {
@@ -16,14 +16,20 @@ class MultiTimeframeManager extends EventEmitter {
 
     this.isRunning = false;
     this.lastSync = null;
+    this.converter = new TimeframeConverter();
   }
 
   /**
    * Add a timeframe to monitor
    */
-  addTimeframe(timeframe, candleSource) {
+  addTimeframe(timeframe, candleSource = null) {
     if (this.timeframes.has(timeframe)) {
       throw new Error(`Timeframe ${timeframe} already exists`);
+    }
+
+    // Validate timeframe
+    if (!TimeframeConverter.isValid(timeframe)) {
+      throw new Error(`Unsupported timeframe: ${timeframe}`);
     }
 
     const timeframeData = {
@@ -37,12 +43,14 @@ class MultiTimeframeManager extends EventEmitter {
     this.timeframes.set(timeframe, timeframeData);
     this.syncedCandles.set(timeframe, []);
 
-    // Subscribe to candle updates
-    candleSource.on('candle', (candle) => {
-      this.onCandleUpdate(timeframe, candle);
-    });
+    // Subscribe to candle updates if candleSource is provided
+    if (candleSource) {
+      candleSource.on('candle', (candle) => {
+        this.onCandleUpdate(timeframe, candle);
+      });
+    }
 
-    logger.info(`Added timeframe: ${timeframe}`);
+    logger.info(`Added timeframe: ${timeframe}${candleSource ? ' with candle source' : ' (aggregated)'}`);
     return this;
   }
 
@@ -71,7 +79,7 @@ class MultiTimeframeManager extends EventEmitter {
   /**
    * Subscribe a strategy to specific timeframes
    */
-  subscribeStrategy(strategyId, timeframes, callback) {
+  subscribeStrategy(strategyId, timeframes, callback, onMultiTimeframeUpdate = null) {
     if (!Array.isArray(timeframes)) {
       timeframes = [timeframes];
     }
@@ -80,6 +88,7 @@ class MultiTimeframeManager extends EventEmitter {
       id: strategyId,
       timeframes: new Set(timeframes),
       callback,
+      onMultiTimeframeUpdate,
       lastUpdate: new Map()
     };
 
@@ -148,6 +157,9 @@ class MultiTimeframeManager extends EventEmitter {
     // Update synced candles
     this.updateSyncedCandles(timeframe, candle);
 
+    // Auto-aggregate to higher timeframes
+    this.aggregateToHigherTimeframes(timeframe, candle);
+
     // Notify subscribed strategies
     this.notifyStrategies(timeframe, candle);
 
@@ -156,6 +168,72 @@ class MultiTimeframeManager extends EventEmitter {
       timeframe,
       candle,
       syncedCandles: this.getSyncedCandles()
+    });
+  }
+
+  /**
+   * Auto-aggregate candles to higher timeframes
+   */
+  aggregateToHigherTimeframes(sourceTimeframe, candle) {
+    // Find all higher timeframes that can be aggregated from this source
+    this.timeframes.forEach((data, targetTimeframe) => {
+      if (targetTimeframe !== sourceTimeframe && 
+          this.converter.canConvert(sourceTimeframe, targetTimeframe)) {
+        
+        // Get source candles for aggregation
+        const sourceData = this.timeframes.get(sourceTimeframe);
+        if (!sourceData || sourceData.candles.length === 0) return;
+        
+        // Calculate how many source candles we need for one target candle
+        const ratio = TimeframeConverter.toMinutes(targetTimeframe) / 
+                     TimeframeConverter.toMinutes(sourceTimeframe);
+        
+        // Check if we have enough candles and if it's time to aggregate
+         if (sourceData.candles.length >= ratio) {
+           const lastCandles = sourceData.candles.slice(-ratio);
+           
+           // Convert timestamp to milliseconds if it's a Date object
+           const currentTimestamp = candle.timestamp instanceof Date ? 
+             candle.timestamp.getTime() : candle.timestamp;
+           const firstTimestamp = lastCandles[0].timestamp instanceof Date ? 
+             lastCandles[0].timestamp.getTime() : lastCandles[0].timestamp;
+           
+           const targetMinutes = TimeframeConverter.toMinutes(targetTimeframe);
+           const periodMs = targetMinutes * 60 * 1000;
+           
+           // Calculate period boundaries
+           const periodStart = Math.floor(firstTimestamp / periodMs) * periodMs;
+           const periodEnd = periodStart + periodMs;
+           
+           // Check if we have a complete period (all candles within the same period)
+           const allInSamePeriod = lastCandles.every(c => {
+             const ts = c.timestamp instanceof Date ? c.timestamp.getTime() : c.timestamp;
+             return ts >= periodStart && ts < periodEnd;
+           });
+           
+           // If we have a complete period and this is the last candle of the period, aggregate
+           if (allInSamePeriod && (currentTimestamp >= periodEnd - 60000 || sourceData.candles.length % ratio === 0)) {
+             const aggregatedCandle = TimeframeConverter.aggregateCandleGroup(lastCandles);
+             aggregatedCandle.timestamp = periodStart;
+             
+             // Update the target timeframe
+             const targetData = this.timeframes.get(targetTimeframe);
+             targetData.candles.push(aggregatedCandle);
+             targetData.lastCandle = aggregatedCandle;
+             
+             // Maintain history limit
+             if (targetData.candles.length > this.config.maxCandleHistory) {
+               targetData.candles.shift();
+             }
+             
+             // Update synced candles for target timeframe
+             this.updateSyncedCandles(targetTimeframe, aggregatedCandle);
+             
+             // Notify strategies about the aggregated candle
+             this.notifyStrategies(targetTimeframe, aggregatedCandle);
+           }
+         }
+      }
     });
   }
 
@@ -231,17 +309,59 @@ class MultiTimeframeManager extends EventEmitter {
         // Prepare multi-timeframe data for strategy
         const multiTimeframeData = this.prepareStrategyData(strategyId, timeframe, candle);
 
-        // Call strategy callback
-        strategyData.callback(multiTimeframeData);
+        // Call strategy callback with candle and timeframe (legacy format)
+        strategyData.callback(candle, timeframe);
 
         // Update last update timestamp
         strategyData.lastUpdate.set(timeframe, candle.timestamp);
+
+        // Check if all timeframes for this strategy have been updated
+        if (strategyData.onMultiTimeframeUpdate && this.areAllTimeframesUpdated(strategyId)) {
+          const allTimeframeData = this.getAllTimeframeData(strategyId);
+          strategyData.onMultiTimeframeUpdate(allTimeframeData);
+        }
 
       } catch (error) {
         logger.error(`Error notifying strategy ${strategyId}:`, error);
         this.emit('strategyError', { strategyId, error, timeframe, candle });
       }
     });
+  }
+
+  /**
+   * Check if all timeframes for a strategy have been updated
+   */
+  areAllTimeframesUpdated(strategyId) {
+    const strategyData = this.strategies.get(strategyId);
+    if (!strategyData) return false;
+
+    for (const timeframe of strategyData.timeframes) {
+      if (!strategyData.lastUpdate.has(timeframe)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Get all timeframe data for a strategy
+   */
+  getAllTimeframeData(strategyId) {
+    const strategyData = this.strategies.get(strategyId);
+    const data = {};
+
+    strategyData.timeframes.forEach(timeframe => {
+      const timeframeData = this.timeframes.get(timeframe);
+      if (timeframeData) {
+        data[timeframe] = {
+          current: timeframeData.lastCandle,
+          history: [...timeframeData.candles],
+          lastUpdate: strategyData.lastUpdate.get(timeframe)
+        };
+      }
+    });
+
+    return data;
   }
 
   /**
@@ -299,6 +419,18 @@ class MultiTimeframeManager extends EventEmitter {
       synced.set(timeframe, [...candles]);
     });
     return synced;
+  }
+
+  /**
+   * Get latest candles for all timeframes
+   */
+  getLatestCandles() {
+    const result = {};
+    this.timeframes.forEach((data, timeframe) => {
+      const latestCandle = this.getLatestCandle(timeframe);
+      result[timeframe] = latestCandle; // Include even if null
+    });
+    return result;
   }
 
   /**
@@ -652,15 +784,13 @@ class TimeframeConverter {
 
   canConvert(fromTimeframe, toTimeframe) {
     try {
-      const fromParsed = this.parseTimeframe(fromTimeframe);
-      const toParsed = this.parseTimeframe(toTimeframe);
-
-      if (!fromParsed || !toParsed) {
+      // Check if both timeframes are supported
+      if (!TimeframeConverter.isValid(fromTimeframe) || !TimeframeConverter.isValid(toTimeframe)) {
         return false;
       }
 
-      const fromMinutes = fromParsed.minutes;
-      const toMinutes = toParsed.minutes;
+      const fromMinutes = TimeframeConverter.toMinutes(fromTimeframe);
+      const toMinutes = TimeframeConverter.toMinutes(toTimeframe);
 
       // Can only convert from lower to higher timeframe
       if (fromMinutes >= toMinutes) {
@@ -668,14 +798,18 @@ class TimeframeConverter {
       }
 
       // Target timeframe must be evenly divisible by source timeframe
-      return toMinutes % fromMinutes === 0;
+      if (toMinutes % fromMinutes !== 0) {
+        return false;
+      }
+
+      return true;
     } catch (error) {
       return false;
     }
   }
 }
 
-export {
+module.exports = {
   MultiTimeframeManager,
   TimeframeConverter
 };

@@ -7,8 +7,9 @@
 
 import fs from 'fs/promises';
 import path from 'path';
+import { info, error, warn } from '../utils/logger.js';
 
-export default class CSVImporter {
+class CSVImporter {
   constructor(options = {}) {
     this.options = {
       // CSV parsing options
@@ -420,4 +421,4 @@ export default class CSVImporter {
 }
 
 // Named export for compatibility
-export { CSVImporter };
+export default CSVImporter;

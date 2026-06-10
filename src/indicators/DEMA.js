@@ -178,26 +178,26 @@ class DEMA {
   // Detect price crossover with DEMA
   detectCrossover(currentPrice) {
     if (this.prices.length < 2) return 'none';
-    
+
     const currentDema = this.getResult();
     const previousPrice = this.prices[this.prices.length - 2];
     const previousDema = this.demaValues[this.demaValues.length - 2];
-    
+
     if (!currentDema || !previousDema) return 'none';
-    
+
     const currentAbove = currentPrice > currentDema;
     const previousAbove = previousPrice > previousDema;
-    
+
     if (!currentAbove && previousAbove) {
       return 'bearish';
     } else if (currentAbove && !previousAbove) {
       return 'bullish';
     }
-    
-    return 'none';
-   }
 
-   // Crossover signals
+    return 'none';
+  }
+
+  // Crossover signals
   getCrossoverSignal(currentPrice, previousPrice) {
     const currentDEMA = this.getResult();
     const previousDEMA = this.demaValues.length > 1 ?
@@ -312,4 +312,4 @@ class DEMA {
   }
 }
 
-export default DEMA;
+export { DEMA };

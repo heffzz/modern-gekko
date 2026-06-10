@@ -1,9 +1,5 @@
-import path from 'path';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const path = require('path');
+const fs = require('fs');
 
 // Mock Backtester for testing
 class MockBacktester {
@@ -596,4 +592,4 @@ function createTestCandles(count = 10) {
   return candles;
 }
 
-export { createTestCandles };
+module.exports = { createTestCandles };

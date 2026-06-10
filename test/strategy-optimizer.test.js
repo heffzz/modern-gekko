@@ -1,5 +1,5 @@
-import { StrategyOptimizer, GeneticAlgorithm } from '../src/engine/strategyOptimizer.js';
-import { AdvancedBacktester } from '../src/engine/advancedBacktester.js';
+const { StrategyOptimizer, GeneticAlgorithm } = require('../src/engine/strategyOptimizer.js');
+const { AdvancedBacktester } = require('../src/engine/advancedBacktester.js');
 
 describe('StrategyOptimizer', () => {
   let optimizer;

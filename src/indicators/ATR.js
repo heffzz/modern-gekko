@@ -129,4 +129,4 @@ class ATR {
   }
 }
 
-export default ATR;
+export { ATR };

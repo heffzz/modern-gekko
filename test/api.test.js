@@ -1,6 +1,6 @@
-import request from 'supertest';
-import express from 'express';
-import path from 'path';
+const request = require('supertest');
+const express = require('express');
+const path = require('path');
 
 // Simple mock API for testing
 function createTestApp() {
@@ -278,4 +278,4 @@ describe('API Tests', () => {
   });
 });
 
-export { createTestApp };
+module.exports = { createTestApp };

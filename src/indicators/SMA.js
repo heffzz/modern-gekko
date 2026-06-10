@@ -6,7 +6,7 @@
  * by the number of time periods.
  */
 
-export default class SMA {
+class SMA {
   constructor(period = 20) {
     if (period <= 0) {
       throw new Error('SMA period must be greater than 0');
@@ -234,5 +234,4 @@ export default class SMA {
   }
 }
 
-// Named export for compatibility
-export { SMA };
+module.exports = { SMA };

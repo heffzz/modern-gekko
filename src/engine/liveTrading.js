@@ -1,6 +1,6 @@
-import EventEmitter from 'events';
-import { v4 as uuidv4 } from 'uuid';
-import PaperTradingEngine from './paperTrading.js';
+const EventEmitter = require('events');
+const { v4: uuidv4 } = require('uuid');
+const PaperTradingEngine = require('./paperTrading.js');
 
 class LiveTradingEngine extends EventEmitter {
   constructor(exchange, config = {}) {
@@ -50,6 +50,14 @@ class LiveTradingEngine extends EventEmitter {
 
   async initialize() {
     try {
+      // Establish the exchange connection if the adapter supports it and is
+      // not already connected, then verify it.
+      if (typeof this.exchange.connect === 'function' &&
+          typeof this.exchange.isConnected === 'function' &&
+          !this.exchange.isConnected()) {
+        await this.exchange.connect();
+      }
+
       // Verify exchange connection
       await this.exchange.testConnection();
 
@@ -205,9 +213,12 @@ class LiveTradingEngine extends EventEmitter {
       }
 
       // Place order on exchange
-      const order = await this.orderManager.placeOrder(orderRequest);
+      const exchangeOrder = await this.orderManager.placeOrder(orderRequest);
 
-      // Update local portfolio
+      // Track the order locally as pending; fills are reconciled later via
+      // syncWithExchange. The exchange order id is preserved so the order can
+      // still be cancelled.
+      const order = { ...exchangeOrder, status: 'pending' };
       this.portfolio.orders.set(order.id, order);
 
       this.emit('orderPlaced', order);
@@ -220,10 +231,8 @@ class LiveTradingEngine extends EventEmitter {
   }
 
   async cancelOrder(orderId) {
-    if (!this.isLive) {
-      throw new Error('Live trading is not active');
-    }
-
+    // Cancelling is allowed even when not live (e.g. during shutdown or an
+    // emergency stop) so pending orders can always be cleaned up.
     try {
       const result = await this.orderManager.cancelOrder(orderId);
 
@@ -267,12 +276,17 @@ class LiveTradingEngine extends EventEmitter {
     }
 
     try {
-      const order = await this.placeOrder({
+      // Submit directly through the order manager: closing a position must
+      // work even while not live or during an emergency stop, where the
+      // public placeOrder guards would otherwise block it.
+      const order = await this.orderManager.placeOrder({
         symbol,
         side: position.quantity > 0 ? 'sell' : 'buy',
         quantity: Math.abs(position.quantity),
         type: 'market'
       });
+
+      this.portfolio.orders.set(order.id, order);
 
       this.emit('positionClosed', { symbol, order });
 
@@ -321,12 +335,12 @@ class LiveTradingEngine extends EventEmitter {
   }
 
   setupSafetyMechanisms() {
-    // Monitor for excessive drawdown
-    this.on('positionUpdate', (data) => {
-      const drawdown = this.riskManager.calculateDrawdown(this.portfolio);
-      if (drawdown > this.config.maxDrawdown) {
-        this.emergencyStopAll();
-      }
+    // Monitor for excessive drawdown and other emergency conditions on every
+    // position update. checkEmergencyConditions uses the full portfolio value
+    // (cash + open positions) against the equity peak and triggers the
+    // emergency stop itself when limits are breached.
+    this.on('positionUpdate', () => {
+      this.checkEmergencyConditions();
     });
 
     // Monitor for connection issues
@@ -337,14 +351,17 @@ class LiveTradingEngine extends EventEmitter {
   }
 
   startHeartbeat() {
+    this.lastSync = Date.now();
     this.heartbeatInterval = setInterval(async() => {
       try {
         await this.exchange.ping();
         this.lastHeartbeat = new Date();
 
-        // Sync with exchange every 30 seconds
-        if (Date.now() - this.lastHeartbeat.getTime() > 30000) {
+        // Sync with exchange every 30 seconds. Compare against the last sync
+        // time, not lastHeartbeat (which was just refreshed above).
+        if (Date.now() - this.lastSync > 30000) {
           await this.syncWithExchange();
+          this.lastSync = Date.now();
         }
       } catch (error) {
         this.emit('connectionLost', error);
@@ -374,6 +391,7 @@ class LiveTradingEngine extends EventEmitter {
 
   setMarketPrice(symbol, price) {
     this.marketPrices.set(symbol, price);
+    this.emit('priceUpdate', { symbol, price, timestamp: new Date() });
   }
 
   getMarketPrice(symbol) {
@@ -429,8 +447,19 @@ class LiveTradingEngine extends EventEmitter {
 
   checkEmergencyConditions() {
     const currentValue = this.calculatePortfolioValue();
-    const initialValue = this.portfolio.initialBalance;
-    const drawdown = ((initialValue - currentValue) / initialValue) * 100;
+    const initialValue = this.portfolio.initialBalance || currentValue;
+
+    // Track the equity peak so drawdown is measured peak-to-trough rather than
+    // only against the initial balance.
+    const previousPeak = this.portfolio.riskMetrics.peakValue;
+    const peak = Math.max(
+      previousPeak === undefined ? initialValue : previousPeak,
+      currentValue,
+      initialValue
+    );
+    this.portfolio.riskMetrics.peakValue = peak;
+
+    const drawdown = peak > 0 ? ((peak - currentValue) / peak) * 100 : 0;
 
     const conditions = {
       maxDrawdownExceeded: drawdown > (this.config.maxDrawdown * 100),
@@ -460,19 +489,20 @@ class RiskManager {
   }
 
   async validateOrder(orderRequest, portfolio) {
+    // Check position limits first: a new position cannot be opened once the
+    // cap is reached, regardless of other order attributes.
+    if (orderRequest.side === 'buy' && portfolio.positions.size >= this.config.maxPositions) {
+      return {
+        approved: false,
+        reason: 'Maximum positions limit reached'
+      };
+    }
+
     // Check if stop loss is required
     if (this.config.stopLossRequired && !orderRequest.stopLoss) {
       return {
         approved: false,
         reason: 'Stop loss is required for all orders'
-      };
-    }
-
-    // Check position limits
-    if (orderRequest.side === 'buy' && portfolio.positions.size >= this.config.maxPositions) {
-      return {
-        approved: false,
-        reason: 'Maximum number of positions reached'
       };
     }
 
@@ -526,8 +556,27 @@ class RiskManager {
   }
 
   calculateDrawdown(portfolio) {
-    // Implementation would calculate current drawdown
-    return 0;
+    if (!portfolio || !portfolio.riskMetrics) {
+      return 0;
+    }
+
+    const current = portfolio.balance || 0;
+    const initial = portfolio.initialBalance || current;
+    const previousPeak = portfolio.riskMetrics.peakValue;
+    const peak = Math.max(
+      previousPeak === undefined ? initial : previousPeak,
+      current,
+      initial
+    );
+
+    portfolio.riskMetrics.peakValue = peak;
+
+    if (peak <= 0) {
+      return 0;
+    }
+
+    // Returns drawdown as a fraction (0..1) from the equity peak.
+    return Math.max(0, (peak - current) / peak);
   }
 
   updateRiskMetrics(portfolio) {
@@ -602,5 +651,7 @@ class OrderManager {
   }
 }
 
-export { LiveTradingEngine, RiskManager, OrderManager };
-export default LiveTradingEngine;
+module.exports = LiveTradingEngine;
+module.exports.LiveTradingEngine = LiveTradingEngine;
+module.exports.RiskManager = RiskManager;
+module.exports.OrderManager = OrderManager;

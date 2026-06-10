@@ -470,4 +470,4 @@ class Ichimoku {
   }
 }
 
-export default Ichimoku;
+export { Ichimoku };

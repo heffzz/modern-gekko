@@ -2,10 +2,36 @@ import express from 'express';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const router = express.Router();
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+
+// Strategy ids map directly to filenames on disk, so only allow a safe
+// character set. This blocks path-traversal (e.g. ../../etc) and prevents
+// writing arbitrary files outside the strategies directory.
+const VALID_STRATEGY_ID = /^[a-zA-Z0-9_-]+$/;
+
+// Windows reserved device names resolve to special files regardless of
+// extension, so reject them even though they match the id character set.
+const RESERVED_DEVICE_NAME = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i;
+
+function isValidStrategyId(id) {
+  return VALID_STRATEGY_ID.test(id) && !RESERVED_DEVICE_NAME.test(id);
+}
+
+function resolveStrategyPath(id) {
+  const strategiesDir = path.join(__dirname, '..', '..', 'strategies');
+  const filePath = path.join(strategiesDir, `${id}.js`);
+  const resolved = path.resolve(filePath);
+  if (resolved !== path.resolve(strategiesDir, `${id}.js`) ||
+      !resolved.startsWith(path.resolve(strategiesDir) + path.sep)) {
+    return null;
+  }
+  return resolved;
+}
 
 // Get all available strategies
 router.get('/', async(req, res) => {
@@ -34,10 +60,16 @@ router.get('/', async(req, res) => {
       }
     }
 
-    res.json(strategies);
+    res.json({
+      success: true,
+      data: strategies
+    });
   } catch (error) {
     console.error('Error loading strategies:', error);
-    res.status(500).json({ error: 'Failed to load strategies' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to load strategies' 
+    });
   }
 });
 
@@ -45,22 +77,44 @@ router.get('/', async(req, res) => {
 router.get('/:id', async(req, res) => {
   try {
     const { id } = req.params;
-    const strategiesDir = path.join(__dirname, '..', '..', 'strategies');
-    const filePath = path.join(strategiesDir, `${id}.js`);
+
+    if (!isValidStrategyId(id)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid strategy id'
+      });
+    }
+
+    const filePath = resolveStrategyPath(id);
+    if (!filePath) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid strategy path'
+      });
+    }
 
     const content = await fs.readFile(filePath, 'utf-8');
 
     res.json({
-      id,
-      content,
-      filename: `${id}.js`
+      success: true,
+      data: {
+        id,
+        content,
+        filename: `${id}.js`
+      }
     });
   } catch (error) {
     if (error.code === 'ENOENT') {
-      res.status(404).json({ error: 'Strategy not found' });
+      res.status(404).json({ 
+        success: false,
+        error: 'Strategy not found' 
+      });
     } else {
       console.error('Error loading strategy:', error);
-      res.status(500).json({ error: 'Failed to load strategy' });
+      res.status(500).json({ 
+        success: false,
+        error: 'Failed to load strategy' 
+      });
     }
   }
 });
@@ -71,23 +125,44 @@ router.post('/:id', async(req, res) => {
     const { id } = req.params;
     const { content } = req.body;
 
-    if (!content) {
-      return res.status(400).json({ error: 'Strategy content is required' });
+    if (!isValidStrategyId(id)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid strategy id'
+      });
     }
 
-    const strategiesDir = path.join(__dirname, '..', '..', 'strategies');
-    const filePath = path.join(strategiesDir, `${id}.js`);
+    if (!content) {
+      return res.status(400).json({
+        success: false,
+        error: 'Strategy content is required'
+      });
+    }
+
+    const filePath = resolveStrategyPath(id);
+    if (!filePath) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid strategy path'
+      });
+    }
 
     await fs.writeFile(filePath, content, 'utf-8');
 
     res.json({
-      message: 'Strategy saved successfully',
-      id,
-      filename: `${id}.js`
+      success: true,
+      data: {
+        message: 'Strategy saved successfully',
+        id,
+        filename: `${id}.js`
+      }
     });
   } catch (error) {
     console.error('Error saving strategy:', error);
-    res.status(500).json({ error: 'Failed to save strategy' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to save strategy' 
+    });
   }
 });
 

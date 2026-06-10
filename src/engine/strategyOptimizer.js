@@ -1,6 +1,6 @@
-import { EventEmitter } from 'events';
-import { logger } from '../utils/logger.js';
-import { AdvancedBacktester } from './advancedBacktester.js';
+const { EventEmitter } = require('events');
+const { logger } = require('../utils/logger.js');
+const { AdvancedBacktester } = require('./advancedBacktester.js');
 
 class StrategyOptimizer extends EventEmitter {
   constructor(config = {}) {
@@ -518,11 +518,21 @@ class GeneticAlgorithm {
   }
 
   tournamentSelection(population, tournamentSize = 3) {
+    if (!population || population.length === 0) {
+      return null;
+    }
+
+    // Sample contestants without replacement so each individual appears at
+    // most once. When the tournament covers the whole population the fittest
+    // individual is selected deterministically.
+    const size = Math.min(tournamentSize, population.length);
+    const indices = [...population.keys()];
     const tournament = [];
 
-    for (let i = 0; i < tournamentSize; i++) {
-      const randomIndex = Math.floor(Math.random() * population.length);
-      tournament.push(population[randomIndex]);
+    for (let i = 0; i < size; i++) {
+      const pick = Math.floor(Math.random() * indices.length);
+      const [index] = indices.splice(pick, 1);
+      tournament.push(population[index]);
     }
 
     return tournament.reduce((best, current) =>
@@ -576,6 +586,10 @@ class GeneticAlgorithm {
 
   calculateDiversity(population) {
     // Simplified diversity calculation
+    if (!population || population.length === 0 || !population[0] || !population[0].parameters) {
+      return 0;
+    }
+    
     const parameterNames = Object.keys(population[0].parameters);
     let totalVariance = 0;
 
@@ -594,8 +608,9 @@ class GeneticAlgorithm {
 
     const recent = history.slice(-10);
     const improvement = recent[recent.length - 1].bestFitness - recent[0].bestFitness;
+    const threshold = this.config.convergenceThreshold || 0.001;
 
-    return Math.abs(improvement) < this.config.convergenceThreshold;
+    return Math.abs(improvement) < threshold;
   }
 }
 
@@ -816,7 +831,7 @@ class BayesianOptimizer {
   }
 }
 
-export {
+module.exports = {
   StrategyOptimizer,
   GeneticAlgorithm,
   GridSearchOptimizer,

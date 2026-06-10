@@ -232,4 +232,4 @@ class BollingerBands {
   }
 }
 
-export default BollingerBands;
+export { BollingerBands };

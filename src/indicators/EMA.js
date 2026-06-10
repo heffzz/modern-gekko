@@ -8,7 +8,7 @@
  * Where multiplier = 2 / (period + 1)
  */
 
-export default class EMA {
+class EMA {
   constructor(period = 20) {
     if (period <= 0) {
       throw new Error('EMA period must be greater than 0');
@@ -298,5 +298,4 @@ export default class EMA {
   }
 }
 
-// Named export for compatibility
-export { EMA };
+module.exports = { EMA };

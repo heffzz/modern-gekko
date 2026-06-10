@@ -1,5 +1,5 @@
-import { EventEmitter } from 'events';
-import { v4 as uuidv4 } from 'uuid';
+const { EventEmitter } = require('events');
+const { v4: uuidv4 } = require('uuid');
 
 class PaperTradingEngine extends EventEmitter {
   constructor(config = {}) {
@@ -1068,5 +1068,5 @@ class PaperTradingEngine extends EventEmitter {
   }
 }
 
-export { PaperTradingEngine };
-export default PaperTradingEngine;
+module.exports = PaperTradingEngine;
+module.exports.PaperTradingEngine = PaperTradingEngine;

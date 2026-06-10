@@ -1,8 +1,9 @@
-import { EventEmitter } from 'events';
-import { logger } from '../utils/logger.js';
-import { PortfolioManager } from './portfolioManager.js';
-import fs from 'fs/promises';
-import path from 'path';
+const { EventEmitter } = require('events');
+const { logger } = require('../utils/logger.js');
+const { PortfolioManager } = require('./portfolioManager.js');
+const { StrategyEngine } = require('./strategyEngine.js');
+const fs = require('fs/promises');
+const path = require('path');
 
 class AdvancedBacktester extends EventEmitter {
   constructor(config = {}) {
@@ -25,6 +26,7 @@ class AdvancedBacktester extends EventEmitter {
     };
 
     this.portfolio = new PortfolioManager(this.config);
+    this.strategyEngine = new StrategyEngine();
     this.marketData = [];
     this.strategy = null;
     this.results = null;
@@ -155,11 +157,13 @@ class AdvancedBacktester extends EventEmitter {
           : signal;
 
         if (executedSignal) {
-          if (executedSignal.action === 'buy' || executedSignal.action === 'sell') {
-            await portfolio.openPosition(executedSignal);
-          } else if (executedSignal.action === 'close') {
+          // Exit signals (type 'exit' or legacy action 'close') close positions;
+          // everything else is an entry (buy/sell).
+          const isExit = executedSignal.type === 'exit' || executedSignal.action === 'close';
+
+          if (isExit) {
             if (executedSignal.positionId) {
-              await portfolio.closePosition(executedSignal.positionId, executedSignal.price);
+              await portfolio.closePosition(executedSignal.positionId, executedSignal.price || candle.close);
             } else {
               // Close all positions
               const openPositions = portfolio.getOpenPositions();
@@ -167,6 +171,14 @@ class AdvancedBacktester extends EventEmitter {
                 await portfolio.closePosition(position.id, candle.close);
               }
             }
+          } else if (executedSignal.action === 'buy' || executedSignal.action === 'sell') {
+            // Strategies operate on a single instrument and do not emit a
+            // symbol, so default it from the candle.
+            await portfolio.openPosition({
+              ...executedSignal,
+              symbol: executedSignal.symbol || candle.symbol || 'DEFAULT',
+              price: executedSignal.price || candle.close
+            });
           }
         }
       }
@@ -235,7 +247,14 @@ class AdvancedBacktester extends EventEmitter {
       };
 
       if (this.strategy.onCandle) {
-        return await this.strategy.onCandle(context);
+        // Strategies expect (candle, historicalCandles, engine). Keep the
+        // shared StrategyEngine in sync so engine-aware strategies (e.g. those
+        // calling engine.sma()/engine.isBullishCrossover()) get a working
+        // engine rather than a plain context object.
+        if (this.strategyEngine && typeof this.strategyEngine.updateCandle === 'function') {
+          this.strategyEngine.updateCandle(candle, context.history);
+        }
+        return await this.strategy.onCandle(candle, context.history, this.strategyEngine);
       } else if (this.strategy.update) {
         return await this.strategy.update(candle);
       }
@@ -936,7 +955,7 @@ class MonteCarloAnalyzer {
   }
 }
 
-export {
+module.exports = {
   AdvancedBacktester,
   RealisticExecutionEngine,
   WalkForwardAnalyzer,

@@ -1,11 +1,13 @@
 import express from 'express';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import fs from 'fs/promises';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const router = express.Router();
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 // Get available indicators
 router.get('/', async(req, res) => {
@@ -19,7 +21,7 @@ router.get('/', async(req, res) => {
       if (file.endsWith('.js') && file !== 'index.js') {
         try {
           const indicatorPath = path.join(indicatorsPath, file);
-          const { default: indicator } = await import(`file://${indicatorPath}`);
+          const indicator = require(indicatorPath);
 
           if (indicator && indicator.name) {
             indicators.push({

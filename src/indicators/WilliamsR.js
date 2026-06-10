@@ -376,4 +376,4 @@ class WilliamsR {
   }
 }
 
-export default WilliamsR;
+export { WilliamsR };

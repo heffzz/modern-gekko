@@ -50,9 +50,9 @@ export const apiService = {
     formData.append('strategy', data.strategy)
     
     if (data.data instanceof File) {
-      formData.append('data', data.data)
+      formData.append('csvFile', data.data)
     } else {
-      formData.append('data', data.data)
+      formData.append('csvFile', data.data)
     }
     
     if (data.parameters) {

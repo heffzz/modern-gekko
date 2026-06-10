@@ -1,4 +1,4 @@
-export class PortfolioSimulator {
+class PortfolioSimulator {
   constructor(options = {}) {
     this.initialBalance = options.initialBalance || 10000;
     this.balance = this.initialBalance; // Cash balance
@@ -355,3 +355,5 @@ export class PortfolioSimulator {
     return clone;
   }
 }
+
+export { PortfolioSimulator };
