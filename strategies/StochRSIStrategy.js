@@ -942,5 +942,9 @@ export default class StochRSIStrategy extends BaseStrategy {
 // Named export for compatibility
 export { StochRSIStrategy };
 
-// CommonJS export for compatibility with tests
-module.exports = StochRSIStrategy;
+// CommonJS export for compatibility with tests (Jest/babel). Guarded so the
+// file can also be loaded as native ESM (e.g. the CLI backtester's dynamic
+// import), where `module` is undefined.
+if (typeof module !== 'undefined') {
+  module.exports = StochRSIStrategy;
+}

@@ -399,5 +399,9 @@ export default class DEMAStrategy extends BaseStrategy {
 // Named export for compatibility
 export { DEMAStrategy };
 
-// CommonJS export for compatibility with tests
-module.exports = DEMAStrategy;
+// CommonJS export for compatibility with tests (Jest/babel). Guarded so the
+// file can also be loaded as native ESM (e.g. the CLI backtester's dynamic
+// import), where `module` is undefined.
+if (typeof module !== 'undefined') {
+  module.exports = DEMAStrategy;
+}

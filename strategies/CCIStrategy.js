@@ -1070,5 +1070,8 @@ export default class CCIStrategy extends BaseStrategy {
 // Named export for compatibility
 export { CCIStrategy };
 
-// CommonJS export for compatibility with tests
-module.exports = CCIStrategy;
+// CommonJS export for the babel/jest pipeline. Guarded so that loading this
+// file as a native ES module (e.g. backtester's import()) does not crash.
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = CCIStrategy;
+}

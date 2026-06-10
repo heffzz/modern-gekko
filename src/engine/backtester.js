@@ -321,8 +321,11 @@ class Backtester {
 // CLI execution - only run when file is executed directly
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   (async() => {
+    // Parsed outside the try block so the catch handler can read the verbose
+    // flag even when parsing or the backtest itself fails.
+    let argv = { verbose: false };
     try {
-      const argv = parseCliArgs();
+      argv = parseCliArgs();
       if (argv.verbose) {
         console.error('Starting backtester...');
       }
